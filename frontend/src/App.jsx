@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_URL = https://music-guessing-api-v2.onrender.com
 
 export default function App() {
   const [view, setView] = useState('home'); 
