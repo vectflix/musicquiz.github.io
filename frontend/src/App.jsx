@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const API_URL = https://music-guessing-api-v2.onrender.com;
+// INSTRUCTIONS: Replace the link below with your actual Render URL
+// Example: "https://vectflix-backend.onrender.com"
+const API_URL = "https://music-guessing-api-v2.onrender.com"; 
 
 export default function App() {
   const [view, setView] = useState('home'); 
@@ -12,13 +14,15 @@ export default function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // 1. Fetch Trending Artists on Load
   useEffect(() => {
     fetch(`${API_URL}/api/artists`)
       .then(res => res.json())
-      .then(setArtists)
+      .then(data => setArtists(data))
       .catch(err => console.error("Connecting to server..."));
   }, []);
 
+  // 2. Search Function
   const handleSearch = (e) => {
     if (e) e.preventDefault();
     if(!searchTerm) return;
@@ -31,21 +35,23 @@ export default function App() {
       })
       .catch(err => {
         setIsSearching(false);
-        alert("Server is waking up. Try again in a moment!");
+        alert("Server is waking up. Please wait 30 seconds and try again!");
       });
   };
 
+  // 3. Start Game Logic (10 Rounds)
   const startFullGame = async (artistId) => {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/game/setup/${artistId}`);
+      if (!res.ok) throw new Error("Server error");
       const data = await res.json();
       setAllRounds(data);
       setScore(0);
       setRoundIndex(0);
       setView('game');
     } catch (err) {
-      alert("Wake-up call sent to server! Wait 30s and click again.");
+      alert("Wake-up call sent to server! Wait a moment and click again.");
     } finally {
       setLoading(false);
     }
@@ -54,7 +60,7 @@ export default function App() {
   const handleAnswer = (wasCorrect) => {
     if (wasCorrect) setScore(s => s + 1);
     if (roundIndex < 9) {
-      setRoundIndex(roundIndex + 1);
+      setRoundIndex(prev => prev + 1);
     } else {
       setView('results');
     }
@@ -71,16 +77,15 @@ export default function App() {
           <div style={styles.heroBanner}>
             <div style={styles.heroOverlay}>
               <h2 style={{fontSize: '2rem', margin: '0'}}>VECTFLIX MUSIC</h2>
-              <p>10 Rounds • 10 Seconds • 100% Skill</p>
+              <p>10 Rounds • 10 Seconds • 100% Knowledge</p>
             </div>
           </div>
 
-          {/* SEARCH SECTION WITH GO BUTTON */}
           <div style={styles.searchContainer}>
             <form onSubmit={handleSearch} style={styles.searchForm}>
               <input 
                 style={styles.searchBar} 
-                placeholder="Artist name..." 
+                placeholder="Search artist..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -133,26 +138,28 @@ export default function App() {
   );
 }
 
+// Separate Component for the Quiz Round to handle the 10s Timer
 function GameRound({ roundData, roundNum, onAnswer }) {
   const [timeLeft, setTimeLeft] = useState(10);
   const audioRef = useRef(new Audio(roundData.preview));
 
   useEffect(() => {
-    audioRef.current.src = roundData.preview;
-    audioRef.current.play().catch(() => {});
+    const audio = audioRef.current;
+    audio.src = roundData.preview;
+    audio.play().catch(() => console.log("User must click to play audio"));
     
     const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     const timeout = setTimeout(() => {
-        audioRef.current.pause();
+        audio.pause();
         onAnswer(false);
     }, 10000);
 
     return () => { 
         clearInterval(timer); 
         clearTimeout(timeout); 
-        audioRef.current.pause(); 
+        audio.pause(); 
     };
-  }, [roundData]);
+  }, [roundData, onAnswer]);
 
   return (
     <div style={styles.gameWrapper}>
@@ -160,7 +167,7 @@ function GameRound({ roundData, roundNum, onAnswer }) {
       <div style={styles.timerContainer}>
         <div style={{...styles.timerFill, width: `${(timeLeft/10)*100}%`}}></div>
       </div>
-      <p>{timeLeft > 0 ? timeLeft : 0}s</p>
+      <p style={{fontWeight: 'bold'}}>{timeLeft > 0 ? timeLeft : 0}s remaining</p>
       
       <div style={styles.choicesGrid}>
         {roundData.choices.map(choice => (
@@ -177,30 +184,28 @@ function GameRound({ roundData, roundNum, onAnswer }) {
   );
 }
 
+// CSS Styles
 const styles = {
-  container: { background: '#141414', color: 'white', minHeight: '100vh', padding: '20px', textAlign: 'center', fontFamily: 'sans-serif' },
-  mainTitle: { color: '#E50914', fontSize: '1.2rem', fontWeight: '900', cursor: 'pointer' },
-  heroBanner: { height: '200px', background: 'url("https://images.unsplash.com/photo-1514525253361-bee871847e7c?auto=format&fit=crop&w=800")', backgroundSize: 'cover', borderRadius: '8px', marginBottom: '20px' },
+  container: { background: '#141414', color: 'white', minHeight: '100vh', padding: '20px', textAlign: 'center', fontFamily: 'Arial, sans-serif' },
+  mainTitle: { color: '#E50914', fontSize: '1.2rem', fontWeight: '900', cursor: 'pointer', marginBottom: '20px' },
+  heroBanner: { height: '200px', background: 'url("https://images.unsplash.com/photo-1514525253361-bee871847e7c?auto=format&fit=crop&w=800")', backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: '8px', marginBottom: '20px' },
   heroOverlay: { height: '100%', background: 'linear-gradient(to top, #141414, transparent)', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
-  
-  // NEW SEARCH STYLES
   searchContainer: { display: 'flex', justifyContent: 'center', marginBottom: '30px' },
   searchForm: { display: 'flex', width: '90%', maxWidth: '400px', gap: '5px' },
   searchBar: { flex: 1, padding: '12px', borderRadius: '4px', border: '1px solid #333', background: '#000', color: 'white', outline: 'none' },
   goButton: { padding: '0 20px', background: '#E50914', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' },
-  
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px' },
   artistCard: { cursor: 'pointer' },
   artistImg: { width: '100%', borderRadius: '4px' },
-  gameWrapper: { maxWidth: '400px', margin: '20px auto', background: '#1f1f1f', padding: '30px', borderRadius: '12px' },
-  timerContainer: { width: '100%', height: '8px', background: '#444', borderRadius: '10px', margin: '15px 0' },
+  gameWrapper: { maxWidth: '400px', margin: '20px auto', background: '#1f1f1f', padding: '30px', borderRadius: '12px', border: '1px solid #333' },
+  timerContainer: { width: '100%', height: '8px', background: '#444', borderRadius: '10px', margin: '15px 0', overflow: 'hidden' },
   timerFill: { height: '100%', background: '#E50914', transition: '1s linear' },
   choicesGrid: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  choiceButton: { padding: '15px', background: '#2a2a2a', color: 'white', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer' },
+  choiceButton: { padding: '15px', background: '#2a2a2a', color: 'white', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' },
   resultsContainer: { padding: '40px' },
   scoreCircle: { width: '120px', height: '120px', border: '5px solid #E50914', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '20px auto' },
-  playBtn: { background: '#E50914', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', marginRight: '10px' },
-  shareBtn: { background: 'white', color: 'black', padding: '10px 20px', border: 'none', borderRadius: '4px' },
+  playBtn: { background: '#E50914', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer' },
+  shareBtn: { background: 'white', color: 'black', padding: '10px 20px', border: 'none', borderRadius: '4px', marginLeft: '10px', cursor: 'pointer' },
   footer: { marginTop: '50px', padding: '20px', borderTop: '1px solid #333' },
   instaLink: { color: '#E50914', textDecoration: 'none', fontWeight: 'bold' }
 };
