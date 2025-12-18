@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const API_URL = https://music-guessing-api-v2.onrender.com
+const API_URL = https://music-guessing-api-v2.onrender.com;
 
 export default function App() {
   const [view, setView] = useState('home'); 
