@@ -4,73 +4,85 @@ const cors = require('cors');
 
 const app = express();
 
-// Enable CORS so your frontend can talk to this server
+// 1. Robust CORS setup to allow your Vercel frontend to talk to this server
 app.use(cors());
 app.use(express.json());
 
-const DEEZER_API = "https://api.deezer.com";
-
-// 1. Get Top Artists for the Home Screen
+// 2. Initial Trending Artists Route
 app.get('/api/artists', async (req, res) => {
   try {
-    const response = await axios.get(`${DEEZER_API}/chart/0/artists`);
+    const response = await axios.get('https://api.deezer.com/chart/0/artists');
+    console.log("Fetched trending artists successfully");
     res.json(response.data.data);
   } catch (error) {
-    console.error("Error fetching artists:", error.message);
+    console.error("Error fetching trending artists:", error.message);
     res.status(500).json({ error: "Failed to fetch artists" });
   }
 });
 
-// 2. Get a Random Song for a specific Artist
-app.get('/api/game/start/:artistId', async (req, res) => {
+// 3. Search Artists Route
+app.get('/api/search/:name', async (req, res) => {
   try {
-    const { artistId } = req.params;
-    // We fetch the top 50 songs to make sure the game is different every time
-    const response = await axios.get(`${DEEZER_API}/artist/${artistId}/top?limit=50`);
-    const tracks = response.data.data;
-
-    if (!tracks || tracks.length === 0) {
-      return res.status(404).json({ error: "No tracks found" });
-    }
-
-    // Pick one random track from the 50
-    const randomTrack = tracks[Math.floor(Math.random() * tracks.length)];
-
-    res.json({
-      id: randomTrack.id,
-      preview: randomTrack.preview, // The 30-second audio clip
-      title: randomTrack.title,
-      artist: randomTrack.artist.name,
-      cover: randomTrack.album.cover_xl
-    });
+    const name = req.params.name;
+    const response = await axios.get(`https://api.deezer.com/search/artist?q=${name}`);
+    console.log(`Search performed for: ${name}`);
+    res.json(response.data.data);
   } catch (error) {
-    console.error("Error fetching song:", error.message);
-    res.status(500).json({ error: "Failed to fetch song" });
-  }
-});
-
-// 3. Search functionality for the guessing box
-app.get('/api/search', async (req, res) => {
-  const { q } = req.query;
-  try {
-    const response = await axios.get(`${DEEZER_API}/search?q=${q}`);
-    const results = response.data.data.slice(0, 5).map(track => ({
-      title: track.title,
-      artist: track.artist.name
-    }));
-    res.json(results);
-  } catch (error) {
+    console.error("Search error:", error.message);
     res.status(500).json({ error: "Search failed" });
   }
 });
 
-// Health check to verify the server is awake
-app.get('/', (req, res) => {
-  res.send("Server is running!");
+// 4. Setup 10 Unique Game Rounds
+app.get('/api/game/setup/:artistId', async (req, res) => {
+  try {
+    const artistId = req.params.artistId;
+    const response = await axios.get(`https://api.deezer.com/artist/${artistId}/top?limit=50`);
+    const allTracks = response.data.data;
+
+    if (!allTracks || allTracks.length < 10) {
+      return res.status(400).json({ error: "Artist doesn't have enough songs for 10 rounds" });
+    }
+    
+    // Shuffle and pick 10 unique tracks
+    const shuffledTracks = allTracks.sort(() => 0.5 - Math.random());
+    const gameRounds = [];
+
+    for(let i=0; i < 10; i++) {
+        const correctTrack = shuffledTracks[i];
+        // Pick 3 wrong choices from other tracks in the top 50
+        const others = shuffledTracks
+            .filter(t => t.id !== correctTrack.id)
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 3);
+            
+        const choices = [correctTrack, ...others].sort(() => 0.5 - Math.random());
+        
+        gameRounds.push({
+            correctId: correctTrack.id,
+            preview: correctTrack.preview,
+            title: correctTrack.title,
+            cover: correctTrack.album.cover_medium,
+            choices: choices.map(c => ({ id: c.id, title: c.title }))
+        });
+    }
+    res.json(gameRounds);
+  } catch (error) {
+    console.error("Game setup error:", error.message);
+    res.status(500).json({ error: "Failed to setup game" });
+  }
 });
 
-// Render will provide a PORT, otherwise use 3001
+// 5. Keep-Alive Ping Route
+// Point your Cron-job here: https://your-backend.onrender.com/ping
+app.get('/ping', (req, res) => {
+  res.send('pong');
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`-----------------------------------------`);
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Frontend should connect to: ${process.env.RENDER_EXTERNAL_URL || 'http://localhost:' + PORT}`);
+  console.log(`-----------------------------------------`);
 });
