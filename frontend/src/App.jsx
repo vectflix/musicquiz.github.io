@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // Replace this with your actual Render URL
-const API_URL = "https://your-new-service-name.onrender.com"; 
+const API_URL = "https://music-guessing-api-v3.onrender.com"; 
 
 export default function App() {
   const [view, setView] = useState('home'); 
