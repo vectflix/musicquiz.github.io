@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 // --- CONFIGURATION ---
 // Replace this with your NEW Render URL once the service is live
-const API_URL = "https://your-new-service-name.onrender.com"; 
+const API_URL = "https://music-guessing-api-v3.onrender.com"; 
 
 export default function App() {
   // View Management
