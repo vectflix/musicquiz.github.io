@@ -3,10 +3,35 @@ import React, { useState, useEffect, useRef } from 'react';
 // --- CONFIGURATION ---
 const API_URL = "https://music-guessing-api-v3.onrender.com"; 
 
-// Legal text for Google AdSense Approval
 const LEGAL_TEXT = {
   about: "VECTFLIX is a high-speed music guessing game designed for music lovers. Using the Deezer API, we provide 30-second song previews to test your knowledge of your favorite artists. Created by @vecteezy_1, this platform aims to celebrate musical culture through interactive play.",
   privacy: "Privacy Policy: VECTFLIX does not store personal user data. We use local storage only to save your high scores. Third-party partners, such as Google AdSense, may use cookies to serve ads based on your prior visits to this website. You can opt out of personalized advertising in your browser settings."
+};
+
+// Reusable Ad Component for React
+const AdSlot = () => {
+  useEffect(() => {
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {
+      console.error("Adsense error:", e);
+    }
+  }, []);
+
+  return (
+    <div style={styles.adSlot}>
+      <p style={{fontSize: '0.6rem', color: '#444', marginBottom: '8px', letterSpacing: '1px'}}>ADVERTISEMENT</p>
+      <div style={styles.adPlaceholder}>
+        {/* REPLACE WITH YOUR ACTUAL GOOGLE <ins> TAG ONCE APPROVED */}
+        <ins className="adsbygoogle"
+             style={{ display: 'block' }}
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" // Replace with your ID
+             data-ad-slot="XXXXXXXXXX"               // Replace with your Slot ID
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+      </div>
+    </div>
+  );
 };
 
 export default function App() {
@@ -21,11 +46,10 @@ export default function App() {
   const [newBest, setNewBest] = useState(false);
   const [selectedArtist, setSelectedArtist] = useState('');
   const [selectedArtistImg, setSelectedArtistImg] = useState('');
-  const [totalTime, setTotalTime] = useState(0);
   const [startTime, setStartTime] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // --- SPEED BOOST: PRE-FETCH NEXT SONG ---
+  // Speed Optimization: Background music pre-fetching
   useEffect(() => {
     if (view === 'game' && allRounds[roundIndex + 1]) {
       const nextAudio = new Audio();
@@ -37,16 +61,8 @@ export default function App() {
   useEffect(() => {
     fetch(`${API_URL}/api/artists`).then(res => res.json()).then(data => {
       if(Array.isArray(data)) setArtists(data);
-    }).catch(() => console.log("Backend waking up..."));
+    }).catch(() => console.log("Backend warming up..."));
   }, []);
-
-  const shareResult = () => {
-    const text = `🔥 I just scored ${score}/10 on VECTFLIX! \n\nPlay here: ${window.location.origin}`;
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
 
   const startFullGame = async (artistId, artistName, artistImg) => {
     setLoading(true);
@@ -58,18 +74,17 @@ export default function App() {
       const data = await res.json();
       setAllRounds(data);
       setScore(0); setRoundIndex(0); setStartTime(Date.now()); setView('game');
-    } catch (err) { alert("Server is warming up! Try again in a moment."); }
-    finally { setLoading(false); }
+    } catch (err) { 
+      alert("Server is warming up! Try again in a moment."); 
+    } finally { setLoading(false); }
   };
 
   const handleAnswer = (wasCorrect) => {
     if (wasCorrect) setScore(s => s + 1);
-    
     if (roundIndex < allRounds.length - 1) {
       setTimeout(() => setRoundIndex(prev => prev + 1), 400);
     } else {
       const finalScore = wasCorrect ? score + 1 : score;
-      setTotalTime(Math.floor((Date.now() - startTime) / 1000));
       if (finalScore > highScore) {
         setHighScore(finalScore);
         localStorage.setItem('vectflix_highscore', finalScore);
@@ -80,7 +95,7 @@ export default function App() {
   };
 
   const dynamicBgStyle = (view !== 'home' && selectedArtistImg) ? {
-    backgroundImage: `linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url(${selectedArtistImg})`,
+    backgroundImage: `linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url(${selectedArtistImg})`,
     backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(60px)',
     position: 'fixed', top: '-10%', left: '-10%', width: '120%', height: '120%', zIndex: -1
   } : { background: '#000', position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1 };
@@ -96,38 +111,34 @@ export default function App() {
         </header>
 
         {view === 'home' && (
-          <>
-            <div style={styles.glassCard}>
-              <form onSubmit={(e) => { e.preventDefault(); fetch(`${API_URL}/api/search/${searchTerm}`).then(res => res.json()).then(setArtists); }} style={styles.searchBox}>
-                <input style={styles.searchBar} placeholder="Search Artist..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                <button type="submit" style={styles.goBtn}>GO</button>
-              </form>
-              {loading && <p style={{color: '#E50914', textAlign:'center'}}>Loading tracks...</p>}
-              <div style={styles.artistGrid}>
-                {artists.map(a => (
-                  <div key={a.id} style={styles.artistCard} onClick={() => startFullGame(a.id, a.name, a.picture_medium)}>
-                    <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                    <p style={{fontSize: '0.7rem', marginTop: '5px', fontWeight: 'bold'}}>{a.name}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* --- SEO & LEGAL SECTION FOR GOOGLE ADS --- */}
-              <div style={styles.legalSection}>
-                <div style={{ marginBottom: '15px' }}>
-                  <h4 style={styles.legalHeading}>About VECTFLIX</h4>
-                  <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
+          <div style={styles.glassCard}>
+            <form onSubmit={(e) => { e.preventDefault(); fetch(`${API_URL}/api/search/${searchTerm}`).then(res => res.json()).then(setArtists); }} style={styles.searchBox}>
+              <input style={styles.searchBar} placeholder="Search Artist..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <button type="submit" style={styles.goBtn}>GO</button>
+            </form>
+            
+            {loading && <p style={{color: '#E50914', textAlign:'center', fontWeight:'bold'}}>Loading hits...</p>}
+            
+            <div style={styles.artistGrid}>
+              {artists.map(a => (
+                <div key={a.id} style={styles.artistCard} onClick={() => startFullGame(a.id, a.name, a.picture_medium)}>
+                  <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
+                  <p style={{fontSize: '0.7rem', marginTop: '5px', fontWeight: 'bold'}}>{a.name}</p>
                 </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <h4 style={styles.legalHeading}>Privacy & Cookies</h4>
-                  <p style={styles.legalBody}>{LEGAL_TEXT.privacy}</p>
-                </div>
-                <p style={{ fontSize: '0.6rem', color: '#444', textAlign: 'center' }}>
-                  Music previews provided by Deezer API.
-                </p>
-              </div>
+              ))}
             </div>
-          </>
+
+            {/* Google Ads Placement */}
+            <AdSlot />
+
+            {/* Legal Section for AdSense Crawlers */}
+            <div style={styles.legalSection}>
+              <h4 style={styles.legalHeading}>About VECTFLIX</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
+              <h4 style={styles.legalHeading}>Privacy & Cookies</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.privacy}</p>
+            </div>
+          </div>
         )}
 
         {view === 'game' && allRounds[roundIndex] && (
@@ -140,11 +151,11 @@ export default function App() {
             <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
             <h2 style={{margin: '5px 0'}}>{selectedArtist}</h2>
             <div style={styles.scoreCircle}>
-              <span style={{fontSize: '4rem', fontWeight: '900'}}>{score}</span>
+              <span style={{fontSize: '4.5rem', fontWeight: '900'}}>{score}</span>
               <span style={{fontSize: '1.2rem', opacity: 0.5}}>/10</span>
             </div>
             <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
-               <button style={styles.shareBtn} onClick={shareResult}>{copied ? "COPIED!" : "SHARE"}</button>
+               <button style={styles.shareBtn} onClick={() => { navigator.clipboard.writeText(`I scored ${score}/10 on VECTFLIX!`); setCopied(true); setTimeout(()=>setCopied(false),2000); }}>{copied ? "COPIED!" : "SHARE"}</button>
                <button style={styles.playBtn} onClick={() => window.location.reload()}>RETRY</button>
             </div>
           </div>
@@ -167,7 +178,6 @@ function GameRound({ roundData, roundNum, onAnswer }) {
   useEffect(() => {
     const audio = new Audio(roundData.preview);
     audio.preload = "auto";
-    audio.load();
     audioRef.current = audio;
     audio.play().catch(() => {});
 
@@ -190,7 +200,7 @@ function GameRound({ roundData, roundNum, onAnswer }) {
   return (
     <div style={styles.glassCard}>
       <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 'bold'}}>
-        <span style={{color: '#E50914'}}>ROUND {roundNum}</span>
+        <span style={{color: '#E50914'}}>ROUND {roundNum}/10</span>
         <span>0:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}</span>
       </div>
       <div style={styles.timerBar}><div style={{...styles.timerFill, width: `${timeLeft*10}%`}}></div></div>
@@ -208,12 +218,12 @@ const styles = {
   highScoreBadge: { fontSize: '0.7rem', color: '#666', letterSpacing: '2px', marginTop: '0px' },
   glassCard: { background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(15px)', borderRadius: '24px', padding: '25px', border: '1px solid rgba(255,255,255,0.1)' },
   searchBox: { display: 'flex', gap: '8px', marginBottom: '20px' },
-  searchBar: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff' },
+  searchBar: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', outline: 'none' },
   goBtn: { background: '#E50914', color: '#fff', border: 'none', padding: '0 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' },
   artistCard: { cursor: 'pointer', textAlign: 'center' },
-  artistImg: { width: '100%', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)' },
-  timerBar: { width: '100%', height: '5px', background: '#222', margin: '15px 0', borderRadius: '10px', overflow: 'hidden' },
+  artistImg: { width: '100%', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)', transition: 'transform 0.2s' },
+  timerBar: { width: '100%', height: '6px', background: '#222', margin: '15px 0', borderRadius: '10px', overflow: 'hidden' },
   timerFill: { height: '100%', background: '#E50914', transition: '1s linear' },
   choicesGrid: { display: 'flex', flexDirection: 'column', gap: '10px' },
   choiceBtn: { padding: '15px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', cursor: 'pointer', textAlign: 'left', fontSize: '0.85rem' },
@@ -225,8 +235,9 @@ const styles = {
   shareBtn: { flex: 1, padding: '15px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
   footer: { marginTop: '40px', textAlign: 'center', paddingBottom: '30px' },
   instaLink: { color: '#888', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '1px' },
-  legalSection: { marginTop: '40px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' },
-  legalHeading: { color: '#E50914', fontSize: '0.85rem', marginBottom: '5px' },
-  legalBody: { fontSize: '0.65rem', color: '#aaa', lineHeight: '1.5' }
+  adSlot: { marginTop: '30px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px', textAlign: 'center' },
+  adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  legalSection: { marginTop: '30px', textAlign: 'left' },
+  legalHeading: { color: '#E50914', fontSize: '0.8rem', marginBottom: '5px' },
+  legalBody: { fontSize: '0.65rem', color: '#777', lineHeight: '1.4', marginBottom: '15px' }
 };
-            
