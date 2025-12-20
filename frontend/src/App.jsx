@@ -19,7 +19,7 @@ export default function App() {
   const [startTime, setStartTime] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  // Prefetching logic: This starts downloading the NEXT song in the background
+  // --- SPEED BOOST: PRE-FETCH NEXT SONG ---
   useEffect(() => {
     if (view === 'game' && allRounds[roundIndex + 1]) {
       const nextAudio = new Audio();
@@ -52,7 +52,7 @@ export default function App() {
       const data = await res.json();
       setAllRounds(data);
       setScore(0); setRoundIndex(0); setStartTime(Date.now()); setView('game');
-    } catch (err) { alert("Try again in 10s!"); }
+    } catch (err) { alert("Server is warming up! Try again in a moment."); }
     finally { setLoading(false); }
   };
 
@@ -83,6 +83,7 @@ export default function App() {
     <div style={{ minHeight: '100vh', color: 'white', fontFamily: 'Inter, sans-serif' }}>
       <div style={dynamicBgStyle} />
       <div style={{ position: 'relative', zIndex: 1, padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
+        
         <header style={{ marginBottom: '30px', textAlign: 'center' }}>
           <h1 style={styles.mainTitle} onClick={() => window.location.reload()}>VECTFLIX</h1>
           <div style={styles.highScoreBadge}>PERSONAL BEST: {highScore}/10</div>
@@ -94,6 +95,7 @@ export default function App() {
               <input style={styles.searchBar} placeholder="Search Artist..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               <button type="submit" style={styles.goBtn}>GO</button>
             </form>
+            {loading && <p style={{color: '#E50914', textAlign:'center'}}>Loading tracks...</p>}
             <div style={styles.artistGrid}>
               {artists.map(a => (
                 <div key={a.id} style={styles.artistCard} onClick={() => startFullGame(a.id, a.name, a.picture_medium)}>
@@ -112,7 +114,7 @@ export default function App() {
         {view === 'results' && (
           <div style={styles.glassCardResults}>
             {newBest && <div style={styles.newBestTag}>NEW BEST!</div>}
-            <img src={selectedArtistImg} style={styles.resultsArtistImg} />
+            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
             <h2 style={{margin: '5px 0'}}>{selectedArtist}</h2>
             <div style={styles.scoreCircle}>
               <span style={{fontSize: '4rem', fontWeight: '900'}}>{score}</span>
@@ -124,6 +126,13 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* --- FOOTER WITH INSTAGRAM --- */}
+        <footer style={styles.footer}>
+          <a href="https://www.instagram.com/vecteezy_1" target="_blank" rel="noreferrer" style={styles.instaLink}>
+            Design by @vecteezy_1
+          </a>
+        </footer>
       </div>
     </div>
   );
@@ -134,21 +143,15 @@ function GameRound({ roundData, roundNum, onAnswer }) {
   const audioRef = useRef(null);
 
   useEffect(() => {
-    // Optimization: Create audio element with auto-preload
     const audio = new Audio(roundData.preview);
     audio.preload = "auto";
-    audio.load(); // Forces browser to begin buffer immediately
+    audio.load();
     audioRef.current = audio;
-    
-    // Play as soon as it's ready to handle network lag
-    audio.play().catch(e => console.log("User must interact first"));
+    audio.play().catch(() => {});
 
     const timer = setInterval(() => {
       setTimeLeft(prev => { 
-        if (prev <= 1) { 
-            onAnswer(false); 
-            return 0; 
-        } 
+        if (prev <= 1) { onAnswer(false); return 0; } 
         return prev - 1; 
       });
     }, 1000);
@@ -157,7 +160,7 @@ function GameRound({ roundData, roundNum, onAnswer }) {
       clearInterval(timer); 
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = ""; // Clean up memory
+        audioRef.current.src = "";
       }
     };
   }, [roundData]); 
@@ -179,12 +182,12 @@ function GameRound({ roundData, roundNum, onAnswer }) {
 }
 
 const styles = {
-  mainTitle: { color: '#E50914', letterSpacing: '6px', cursor: 'pointer', fontWeight: '900', fontSize: '2.2rem' },
-  highScoreBadge: { fontSize: '0.7rem', color: '#666', letterSpacing: '2px', marginTop: '-10px' },
+  mainTitle: { color: '#E50914', letterSpacing: '6px', cursor: 'pointer', fontWeight: '900', fontSize: '2.2rem', marginBottom: '0px' },
+  highScoreBadge: { fontSize: '0.7rem', color: '#666', letterSpacing: '2px', marginTop: '0px' },
   glassCard: { background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(15px)', borderRadius: '24px', padding: '25px', border: '1px solid rgba(255,255,255,0.1)' },
   searchBox: { display: 'flex', gap: '8px', marginBottom: '20px' },
   searchBar: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff' },
-  goBtn: { background: '#E50914', color: '#fff', border: 'none', padding: '0 15px', borderRadius: '12px', fontWeight: 'bold' },
+  goBtn: { background: '#E50914', color: '#fff', border: 'none', padding: '0 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' },
   artistCard: { cursor: 'pointer', textAlign: 'center' },
   artistImg: { width: '100%', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)' },
@@ -198,5 +201,6 @@ const styles = {
   scoreCircle: { margin: '10px 0' },
   playBtn: { flex: 1, padding: '15px', background: '#E50914', border: 'none', color: '#fff', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
   shareBtn: { flex: 1, padding: '15px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
+  footer: { marginTop: '40px', textAlign: 'center', paddingBottom: '30px' },
+  instaLink: { color: '#888', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '1px' }
 };
-    
