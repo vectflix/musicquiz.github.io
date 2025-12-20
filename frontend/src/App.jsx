@@ -3,6 +3,12 @@ import React, { useState, useEffect, useRef } from 'react';
 // --- CONFIGURATION ---
 const API_URL = "https://music-guessing-api-v3.onrender.com"; 
 
+// Legal text for Google AdSense Approval
+const LEGAL_TEXT = {
+  about: "VECTFLIX is a high-speed music guessing game designed for music lovers. Using the Deezer API, we provide 30-second song previews to test your knowledge of your favorite artists. Created by @vecteezy_1, this platform aims to celebrate musical culture through interactive play.",
+  privacy: "Privacy Policy: VECTFLIX does not store personal user data. We use local storage only to save your high scores. Third-party partners, such as Google AdSense, may use cookies to serve ads based on your prior visits to this website. You can opt out of personalized advertising in your browser settings."
+};
+
 export default function App() {
   const [view, setView] = useState('home'); 
   const [loading, setLoading] = useState(false);
@@ -90,21 +96,38 @@ export default function App() {
         </header>
 
         {view === 'home' && (
-          <div style={styles.glassCard}>
-            <form onSubmit={(e) => { e.preventDefault(); fetch(`${API_URL}/api/search/${searchTerm}`).then(res => res.json()).then(setArtists); }} style={styles.searchBox}>
-              <input style={styles.searchBar} placeholder="Search Artist..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-              <button type="submit" style={styles.goBtn}>GO</button>
-            </form>
-            {loading && <p style={{color: '#E50914', textAlign:'center'}}>Loading tracks...</p>}
-            <div style={styles.artistGrid}>
-              {artists.map(a => (
-                <div key={a.id} style={styles.artistCard} onClick={() => startFullGame(a.id, a.name, a.picture_medium)}>
-                  <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                  <p style={{fontSize: '0.7rem', marginTop: '5px', fontWeight: 'bold'}}>{a.name}</p>
+          <>
+            <div style={styles.glassCard}>
+              <form onSubmit={(e) => { e.preventDefault(); fetch(`${API_URL}/api/search/${searchTerm}`).then(res => res.json()).then(setArtists); }} style={styles.searchBox}>
+                <input style={styles.searchBar} placeholder="Search Artist..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <button type="submit" style={styles.goBtn}>GO</button>
+              </form>
+              {loading && <p style={{color: '#E50914', textAlign:'center'}}>Loading tracks...</p>}
+              <div style={styles.artistGrid}>
+                {artists.map(a => (
+                  <div key={a.id} style={styles.artistCard} onClick={() => startFullGame(a.id, a.name, a.picture_medium)}>
+                    <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
+                    <p style={{fontSize: '0.7rem', marginTop: '5px', fontWeight: 'bold'}}>{a.name}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* --- SEO & LEGAL SECTION FOR GOOGLE ADS --- */}
+              <div style={styles.legalSection}>
+                <div style={{ marginBottom: '15px' }}>
+                  <h4 style={styles.legalHeading}>About VECTFLIX</h4>
+                  <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
                 </div>
-              ))}
+                <div style={{ marginBottom: '15px' }}>
+                  <h4 style={styles.legalHeading}>Privacy & Cookies</h4>
+                  <p style={styles.legalBody}>{LEGAL_TEXT.privacy}</p>
+                </div>
+                <p style={{ fontSize: '0.6rem', color: '#444', textAlign: 'center' }}>
+                  Music previews provided by Deezer API.
+                </p>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {view === 'game' && allRounds[roundIndex] && (
@@ -127,7 +150,6 @@ export default function App() {
           </div>
         )}
 
-        {/* --- FOOTER WITH INSTAGRAM --- */}
         <footer style={styles.footer}>
           <a href="https://www.instagram.com/vecteezy_1" target="_blank" rel="noreferrer" style={styles.instaLink}>
             Design by @vecteezy_1
@@ -202,5 +224,9 @@ const styles = {
   playBtn: { flex: 1, padding: '15px', background: '#E50914', border: 'none', color: '#fff', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
   shareBtn: { flex: 1, padding: '15px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
   footer: { marginTop: '40px', textAlign: 'center', paddingBottom: '30px' },
-  instaLink: { color: '#888', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '1px' }
+  instaLink: { color: '#888', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '1px' },
+  legalSection: { marginTop: '40px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' },
+  legalHeading: { color: '#E50914', fontSize: '0.85rem', marginBottom: '5px' },
+  legalBody: { fontSize: '0.65rem', color: '#aaa', lineHeight: '1.5' }
 };
+            
