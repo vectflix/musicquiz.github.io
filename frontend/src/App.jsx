@@ -5,22 +5,7 @@ const API_URL = "https://music-guessing-api-v3.onrender.com";
 
 const LEGAL_TEXT = {
   about: "VECTFLIX is a premium high-speed music guessing game. Using the Deezer API, we provide 30-second song previews to test your knowledge of your favorite artists. Created by @vecteezy_1.",
-  privacy: "Privacy Policy: VECTFLIX uses local storage for high scores. We do not store personal data. Third-party partners like Google AdSense may use cookies for ads."
-};
-
-// Ad Component for AdSense
-const AdSlot = () => {
-  useEffect(() => {
-    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
-  }, []);
-  return (
-    <div style={styles.adSlot}>
-      <p style={{fontSize: '0.6rem', color: '#444', marginBottom: '8px'}}>ADVERTISEMENT</p>
-      <div style={styles.adPlaceholder}>
-        <ins className="adsbygoogle" style={{ display: 'block' }} data-ad-client="ca-pub-YOUR_ID" data-ad-slot="YOUR_SLOT" data-ad-format="auto" data-full-width-responsive="true"></ins>
-      </div>
-    </div>
-  );
+  privacy: "Privacy Policy: VECTFLIX uses local storage for high scores. Third-party partners like Google AdSense may use cookies for personalized advertising."
 };
 
 export default function App() {
@@ -37,10 +22,10 @@ export default function App() {
   const [newBest, setNewBest] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // --- 🚀 EXTREME SPEED ENGINE: 3-ROUND BUFFER ---
+  // --- 🚀 NO-LAG ENGINE: 3-ROUND BUFFER ---
   useEffect(() => {
-    if (view === 'game' && allRounds.length > 0) {
-      [roundIndex + 1, roundIndex + 2, roundIndex + 3].forEach(idx => {
+    if ((view === 'game' || view === 'ready') && allRounds.length > 0) {
+      [roundIndex, roundIndex + 1, roundIndex + 2].forEach(idx => {
         if (allRounds[idx]) {
           const audio = new Audio();
           audio.src = allRounds[idx].preview;
@@ -53,7 +38,7 @@ export default function App() {
   useEffect(() => {
     fetch(`${API_URL}/api/artists`).then(res => res.json()).then(data => {
       if(Array.isArray(data)) setArtists(data);
-    }).catch(() => console.log("Backend warming up..."));
+    }).catch(() => console.log("Wake up call sent to server..."));
   }, []);
 
   const startFullGame = async (artistId, artistName, artistImg) => {
@@ -65,8 +50,10 @@ export default function App() {
       const res = await fetch(`${API_URL}/api/game/setup/${artistId}`);
       const data = await res.json();
       setAllRounds(data);
-      setScore(0); setRoundIndex(0); setView('game');
-    } catch (err) { alert("Server warming up! Try again in a moment."); }
+      setScore(0); 
+      setRoundIndex(0); 
+      setView('ready'); // Goes to START button screen
+    } catch (err) { alert("Server warming up! Try again."); }
     finally { setLoading(false); }
   };
 
@@ -104,8 +91,8 @@ export default function App() {
               </form>
             </div>
             
-            <h3 style={styles.sectionTitle}>Trending Now</h3>
-            {loading ? <div style={styles.loader}>🎧 Preparing Clips...</div> : (
+            <h3 style={styles.sectionTitle}>Trending Artists</h3>
+            {loading ? <div style={styles.loader}>🎧 PREPARING CLIPS...</div> : (
               <div style={styles.artistGrid}>
                 {artists.map(a => (
                   <div key={a.id} style={styles.artistCard} onClick={() => startFullGame(a.id, a.name, a.picture_medium)}>
@@ -118,15 +105,20 @@ export default function App() {
               </div>
             )}
             
-            <AdSlot />
-
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
-              <h4 style={styles.legalHeading}>Privacy</h4>
-              <p style={styles.legalBody}>{LEGAL_TEXT.privacy}</p>
             </div>
           </main>
+        )}
+
+        {view === 'ready' && (
+          <div style={styles.glassCardResults}>
+            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
+            <h2 style={{margin: '10px 0', fontSize: '1.8rem'}}>{selectedArtist}</h2>
+            <p style={{opacity: 0.5, marginBottom: '25px'}}>10 Rounds • Instant Play</p>
+            <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
+          </div>
         )}
 
         {view === 'game' && allRounds[roundIndex] && (
@@ -137,7 +129,7 @@ export default function App() {
           <div style={styles.glassCardResults}>
             {newBest && <div style={styles.newBestTag}>NEW RECORD!</div>}
             <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
-            <h2 style={{margin: '5px 0', fontSize: '1.5rem'}}>{selectedArtist}</h2>
+            <h2 style={{margin: '5px 0'}}>{selectedArtist}</h2>
             <div style={styles.scoreBox}>
               <span style={styles.finalScore}>{score}</span>
               <span style={{fontSize: '1.2rem', opacity: 0.4}}>/10</span>
@@ -176,7 +168,7 @@ function GameRound({ roundData, roundNum, onAnswer }) {
     <div style={styles.gameCard}>
       <div style={styles.gameHeader}>
         <span style={{color: '#E50914'}}>ROUND {roundNum}/10</span>
-        <span style={styles.timerText}>{timeLeft}s</span>
+        <span style={{letterSpacing: '1px'}}>{timeLeft}s</span>
       </div>
       <div style={styles.progressContainer}><div style={{...styles.progressBar, width: `${timeLeft*10}%`}}></div></div>
       <div style={styles.choicesGrid}>
@@ -195,11 +187,11 @@ const styles = {
   logo: { color: '#E50914', fontSize: '1.8rem', fontWeight: '900', letterSpacing: '2px', cursor: 'pointer' },
   topBadge: { background: 'rgba(255,255,255,0.1)', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold' },
   heroSection: { marginBottom: '30px' },
-  heroText: { fontSize: '2.5rem', fontWeight: '800', margin: '0 0 15px 0' },
+  heroText: { fontSize: '2.5rem', fontWeight: '800', margin: '0 0 15px 0', lineHeight: 1.1 },
   searchBox: { display: 'flex', background: '#222', borderRadius: '15px', padding: '5px 10px', alignItems: 'center' },
   searchBar: { flex: 1, background: 'transparent', border: 'none', color: 'white', padding: '12px', outline: 'none' },
   searchBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' },
-  sectionTitle: { fontSize: '1rem', marginBottom: '15px', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '1px' },
+  sectionTitle: { fontSize: '1rem', marginBottom: '15px', opacity: 0.6, textTransform: 'uppercase' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
   imgWrapper: { overflow: 'hidden', borderRadius: '50%', aspectRatio: '1/1', border: '2px solid #333' },
@@ -222,9 +214,7 @@ const styles = {
   loader: { textAlign: 'center', color: '#E50914', marginTop: '50px', fontWeight: 'bold' },
   footer: { textAlign: 'center', marginTop: '50px' },
   instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' },
-  adSlot: { margin: '30px 0', textAlign: 'center' },
-  adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', border: '1px dashed #333', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  legalSection: { marginTop: '30px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
+  legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
   legalHeading: { color: '#E50914', fontSize: '0.8rem', margin: '5px 0' },
-  legalBody: { fontSize: '0.6rem', color: '#666', lineHeight: '1.4', marginBottom: '10px' }
+  legalBody: { fontSize: '0.6rem', color: '#666', lineHeight: '1.4' }
 };
