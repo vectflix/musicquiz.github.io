@@ -8,6 +8,26 @@ const LEGAL_TEXT = {
   privacy: "Privacy Policy: VECTFLIX uses local storage for high scores. Third-party partners like Google AdSense may use cookies for personalized advertising."
 };
 
+// --- 💰 UPDATED AD COMPONENT ---
+const AdSlot = () => {
+  useEffect(() => {
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+  }, []);
+  return (
+    <div style={styles.adSlot}>
+      <p style={{fontSize: '0.6rem', color: '#444', marginBottom: '8px'}}>ADVERTISEMENT</p>
+      <div style={styles.adPlaceholder}>
+        <ins className="adsbygoogle" 
+             style={{ display: 'block' }} 
+             data-ad-client="ca-pub-6249624506404198" 
+             data-ad-slot="default" 
+             data-ad-format="auto" 
+             data-full-width-responsive="true"></ins>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [view, setView] = useState('home'); 
   const [loading, setLoading] = useState(false);
@@ -38,7 +58,7 @@ export default function App() {
   useEffect(() => {
     fetch(`${API_URL}/api/artists`).then(res => res.json()).then(data => {
       if(Array.isArray(data)) setArtists(data);
-    }).catch(() => console.log("Wake up call sent to server..."));
+    }).catch(() => console.log("Backend warming up..."));
   }, []);
 
   const startFullGame = async (artistId, artistName, artistImg) => {
@@ -52,7 +72,7 @@ export default function App() {
       setAllRounds(data);
       setScore(0); 
       setRoundIndex(0); 
-      setView('ready'); // Goes to START button screen
+      setView('ready'); 
     } catch (err) { alert("Server warming up! Try again."); }
     finally { setLoading(false); }
   };
@@ -75,7 +95,6 @@ export default function App() {
   return (
     <div style={styles.appWrapper}>
       <div style={styles.container}>
-        
         <header style={styles.header}>
           <h1 style={styles.logo} onClick={() => window.location.reload()}>VECTFLIX</h1>
           <div style={styles.topBadge}>🏆 BEST: {highScore}/10</div>
@@ -105,6 +124,8 @@ export default function App() {
               </div>
             )}
             
+            <AdSlot />
+
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
@@ -214,6 +235,8 @@ const styles = {
   loader: { textAlign: 'center', color: '#E50914', marginTop: '50px', fontWeight: 'bold' },
   footer: { textAlign: 'center', marginTop: '50px' },
   instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' },
+  adSlot: { margin: '40px 0', textAlign: 'center' },
+  adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', border: '1px dashed #333', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
   legalHeading: { color: '#E50914', fontSize: '0.8rem', margin: '5px 0' },
   legalBody: { fontSize: '0.6rem', color: '#666', lineHeight: '1.4' }
