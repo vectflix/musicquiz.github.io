@@ -5,7 +5,8 @@ const API_URL = "https://music-guessing-api-v3.onrender.com";
 
 const LEGAL_TEXT = {
   about: "VECTFLIX is a premium high-speed music guessing game. Using the Deezer API, we provide 30-second song previews to test your knowledge of your favorite artists. Created by @vecteezy_1.",
-  privacy: "Privacy Policy: VECTFLIX uses local storage for high scores. Third-party partners like Google AdSense may use cookies for personalized advertising."
+  privacy: "Privacy Policy: VECTFLIX uses local storage for high scores. We do not store personal identification data.",
+  cookies: "Cookies Policy: We use cookies to analyze site traffic and for ads. Third-party partners like Google AdSense use cookies to serve personalized ads based on your visits to this and other websites. You can manage your cookie preferences in your browser settings."
 };
 
 // --- 💰 UPDATED AD COMPONENT ---
@@ -129,6 +130,9 @@ export default function App() {
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
+              <h4 style={styles.legalHeading}>Privacy & Cookies</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.privacy}</p>
+              <p style={styles.legalBody}>{LEGAL_TEXT.cookies}</p>
             </div>
           </main>
         )}
@@ -239,5 +243,5 @@ const styles = {
   adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', border: '1px dashed #333', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
   legalHeading: { color: '#E50914', fontSize: '0.8rem', margin: '5px 0' },
-  legalBody: { fontSize: '0.6rem', color: '#666', lineHeight: '1.4' }
+  legalBody: { fontSize: '0.6rem', color: '#666', lineHeight: '1.4', marginBottom: '10px' }
 };
