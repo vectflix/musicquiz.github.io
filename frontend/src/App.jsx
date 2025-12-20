@@ -25,27 +25,6 @@ export default function App() {
     }).catch(() => console.log("Backend waking up..."));
   }, []);
 
-  // --- SOUND EFFECTS ---
-  const playSound = (type) => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      if (type === 'correct') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-      } else {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-      }
-      osc.start(); osc.stop(ctx.currentTime + 0.3);
-    } catch (e) {}
-  };
-
   // --- SHARE FUNCTION ---
   const shareResult = () => {
     const text = `🔥 I just scored ${score}/10 on VECTFLIX guessing ${selectedArtist} songs! Can you beat me? \n\nPlay here: ${window.location.origin}`;
@@ -70,7 +49,7 @@ export default function App() {
   };
 
   const handleAnswer = (wasCorrect) => {
-    playSound(wasCorrect ? 'correct' : 'wrong');
+    // Sound logic removed to stop lag and silence the correct/wrong beeps
     if (wasCorrect) setScore(s => s + 1);
     
     if (roundIndex < allRounds.length - 1) {
@@ -172,7 +151,7 @@ function GameRound({ roundData, roundNum, onAnswer }) {
       setTimeLeft(prev => { if (prev <= 1) { onAnswer(false); return 0; } return prev - 1; });
     }, 1000);
     return () => { clearInterval(timer); if (audioRef.current) audioRef.current.pause(); };
-  }, []); 
+  }, [roundData]); 
 
   return (
     <div style={styles.glassCard}>
