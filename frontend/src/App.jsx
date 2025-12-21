@@ -208,8 +208,8 @@ export default function App() {
 
         {view === 'results' && (
           <div style={styles.glassCardResults}>
-            <h4 style={{opacity: 0.5}}>GAME OVER</h4>
-            <h2 style={{fontSize: '3rem'}}>{score}/10</h2>
+            <h4 style={{opacity: 0.5, letterSpacing: '2px'}}>GAME OVER</h4>
+            <h2 style={{fontSize: '3.5rem', margin: '10px 0'}}>{score}/10</h2>
             <div style={styles.leaderboardBox}>
                <h4 style={styles.leaderboardTitle}>GLOBAL TOP 5</h4>
                {leaderboard.map((entry, i) => (
@@ -218,7 +218,7 @@ export default function App() {
             </div>
 
             <div style={styles.discoveryBox}>
-              <p style={{fontSize: '0.6rem', opacity: 0.5, marginBottom: '8px'}}>SUPPORT THE ARTIST</p>
+              <p style={{fontSize: '0.6rem', opacity: 0.5, marginBottom: '8px'}}>LISTEN ON</p>
               <a href={`https://music.apple.com/search?term=${selectedArtist}`} target="_blank" rel="noreferrer" style={{...styles.affiliateBtn, background: '#fff', color: '#000'}}>🍎 Apple Music</a>
               <a href={`https://open.spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={{...styles.affiliateBtn, background: '#1DB954', color: '#fff'}}>🎧 Spotify</a>
             </div>
@@ -232,27 +232,29 @@ export default function App() {
         {view === 'share' && (
           <div style={styles.sharePage}>
             <div style={styles.shareCard}>
-              <div style={{color: '#E50914', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '3px', marginBottom: '20px'}}>VECTFLIX</div>
+              <div style={{color: '#E50914', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '3px', marginBottom: '15px'}}>VECTFLIX</div>
               
-              {/* ARTIST PROFILE CIRCLE */}
-              <div style={{position: 'relative', marginBottom: '15px'}}>
-                <img src={selectedArtistImg} style={styles.shareArtistImg} alt="artist" />
+              {/* ARTIST SECTION FIXED */}
+              <div style={{position: 'relative', width: '150px', height: '150px', margin: '0 auto 15px auto'}}>
+                <img src={selectedArtistImg} style={styles.shareArtistImg} alt={selectedArtist} />
                 <div style={styles.verifiedBadge}>✔️</div>
               </div>
               
-              <h2 style={{margin: '0', fontSize: '1.5rem'}}>{selectedArtist}</h2>
-              <p style={{fontSize: '0.7rem', color: '#E50914', marginTop: '5px', fontWeight: 'bold'}}>VERIFIED ARTIST</p>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'}}>
+                 <h2 style={{margin: '0', fontSize: '1.6rem'}}>{selectedArtist}</h2>
+              </div>
+              <p style={{fontSize: '0.7rem', color: '#E50914', marginTop: '5px', fontWeight: 'bold', letterSpacing: '1px'}}>VERIFIED ARTIST</p>
               
-              <div style={{fontSize: '4.5rem', fontWeight: 'bold', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
+              <div style={{fontSize: '4.5rem', fontWeight: 'bold', color: '#E50914', margin: '10px 0'}}>{score}/10</div>
               
-              <p style={{opacity: 0.6, fontSize: '0.9rem'}}>Think you can beat me?</p>
+              <p style={{opacity: 0.7, fontSize: '0.9rem', fontStyle: 'italic'}}>“Can you beat my high score?”</p>
               
-              <div style={{marginTop: '25px', padding: '10px', borderTop: '1px solid #333', width: '80%', fontSize: '0.6rem', opacity: 0.4}}>
+              <div style={{marginTop: '20px', padding: '12px', borderTop: '1px solid #333', width: '90%', fontSize: '0.65rem', opacity: 0.5}}>
                 musicquiz-github-io.vercel.app
               </div>
             </div>
             
-            <p style={{fontSize: '0.8rem', margin: '20px 0'}}>Screenshot and tag **@vecteezy_1**</p>
+            <p style={{fontSize: '0.8rem', margin: '20px 0', opacity: 0.8}}>Screenshot & tag **@vecteezy_1**</p>
             <button style={{...styles.playBtn, background: '#222', marginBottom: '10px'}} onClick={copyToClipboard}>📋 COPY TEXT SCORE</button>
             <button style={styles.playBtn} onClick={() => setView('results')}>← BACK</button>
           </div>
@@ -316,8 +318,8 @@ const styles = {
   affiliateBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '8px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' },
   sharePage: { textAlign: 'center' },
   shareCard: { background: '#111', padding: '40px 20px', borderRadius: '30px', border: '2px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' },
-  shareArtistImg: { width: '150px', height: '150px', borderRadius: '50%', border: '4px solid #E50914', objectFit: 'cover' },
-  verifiedBadge: { position: 'absolute', bottom: '10px', right: '10px', background: '#1da1f2', width: '25px', height: '25px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', border: '2px solid #111' },
+  shareArtistImg: { width: '100%', height: '100%', borderRadius: '50%', border: '4px solid #E50914', objectFit: 'cover' },
+  verifiedBadge: { position: 'absolute', bottom: '8px', right: '8px', background: '#1da1f2', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', border: '3px solid #111', boxShadow: '0 0 10px rgba(29, 161, 242, 0.5)' },
   adSlot: { margin: '20px 0', textAlign: 'center' },
   adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px' },
   legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
