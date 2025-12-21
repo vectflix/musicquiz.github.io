@@ -50,10 +50,17 @@ export default function App() {
   const [artistWindowIndex, setArtistWindowIndex] = useState(0);
   const ARTISTS_PER_VIEW = 6;
 
+  // Smooth fade effect
+  const [fade, setFade] = useState(true);
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (artists.length > 0) {
-        setArtistWindowIndex(prev => (prev + ARTISTS_PER_VIEW) % artists.length);
+        setFade(false);
+        setTimeout(() => {
+          setArtistWindowIndex(prev => (prev + ARTISTS_PER_VIEW) % artists.length);
+          setFade(true);
+        }, 500); // fade-out duration
       }
     }, 5000); // Change every 5 seconds
     return () => clearInterval(interval);
@@ -192,7 +199,8 @@ export default function App() {
               {isFetchingArtists && <div style={styles.loaderLine}></div>}
             </div>
 
-            <div style={styles.artistGrid}>
+            {/* --- Animated Artist Grid --- */}
+            <div style={{...styles.artistGrid, opacity: fade ? 1 : 0, transition: 'opacity 0.5s'}}>
               {artists.length > 0 ? 
                 artists
                   .slice(artistWindowIndex, artistWindowIndex + ARTISTS_PER_VIEW)
@@ -214,3 +222,35 @@ export default function App() {
             </div>
           </main>
         )}
+
+        {/* Game, Results, Share, Ranking, Footer remain exactly the same */}
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  appWrapper: { minHeight: '100vh', background: '#000', color: 'white', fontFamily: 'sans-serif' },
+  container: { maxWidth: '400px', margin: '0 auto', padding: '20px' },
+  header: { padding: '20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' },
+  logo: { color: '#E50914', fontSize: '1.5rem', fontWeight: '900', letterSpacing: '2px' },
+  userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
+  heroText: { fontSize: '2rem', marginBottom: '20px', fontWeight: '900' },
+  searchContainer: { marginBottom: '25px', position: 'relative' },
+  searchInput: { width: '100%', padding: '18px', background: '#111', border: '1px solid #333', borderRadius: '15px', color: 'white', fontSize: '1rem', outline: 'none' },
+  loaderLine: { position: 'absolute', bottom: '0', left: '0', height: '2px', width: '100%', background: '#E50914', animation: 'loader 1s infinite' },
+  artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '30px' },
+  artistCard: { cursor: 'pointer', textAlign: 'center', transition: 'transform 0.3s, box-shadow 0.3s', borderRadius: '15px', overflow: 'hidden', border: '1px solid #222', background: 'rgba(255,255,255,0.02)', boxShadow: '0 4px 8px rgba(0,0,0,0.3)' },
+  artistCardHover: { transform: 'scale(1.05)', boxShadow: '0 8px 16px rgba(0,0,0,0.5)' },
+  artistImg: { width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '15px' },
+  artistName: { fontSize: '0.7rem', margin: '5px 0', fontWeight: '600' },
+  legalSection: { marginTop: '30px', fontSize: '0.6rem', lineHeight: '1.4rem', opacity: 0.7 },
+  legalHeading: { fontWeight: '700', marginBottom: '5px' },
+  legalBody: { marginBottom: '15px' },
+  loginOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 999 },
+  glassCardResults: { background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '25px', border: '1px solid #222', textAlign: 'center', color: '#fff' },
+  loginInput: { width: '70%', padding: '12px', borderRadius: '15px', border: 'none', marginBottom: '15px', outline: 'none', fontSize: '0.9rem' },
+  playBtn: { padding: '12px 25px', background: '#E50914', color: 'white', border: 'none', borderRadius: '25px', cursor: 'pointer', fontWeight: 'bold' },
+  adSlot: { margin: '20px 0', textAlign: 'center' },
+  adPlaceholder: { width: '100%', minHeight: '60px' }
+};
