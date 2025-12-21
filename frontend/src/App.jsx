@@ -41,13 +41,12 @@ export default function App() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [selectedArtist, setSelectedArtist] = useState('');
   const [selectedArtistImg, setSelectedArtistImg] = useState('');
-  const [countdown, setCountdown] = useState(null); // NEW: Countdown State
+  const [countdown, setCountdown] = useState(null); 
   
   const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // Buffer next audio
   useEffect(() => {
     if ((view === 'game' || view === 'ready') && allRounds[roundIndex]) {
       const audio = new Audio();
@@ -97,7 +96,6 @@ export default function App() {
     setLoading(false);
   };
 
-  // --- NEW: Countdown Trigger ---
   const triggerCountdown = () => {
     setCountdown(3);
     const timer = setInterval(() => {
@@ -222,7 +220,27 @@ export default function App() {
                  </div>
                ))}
             </div>
-            <button style={styles.playBtn} onClick={() => setView('home')}>RETRY</button>
+
+            {/* --- 🎵 MUSIC DISCOVERY (NEW) --- */}
+            <div style={styles.discoveryBox}>
+              <p style={{fontSize: '0.7rem', opacity: 0.5, marginBottom: '10px', textTransform: 'uppercase'}}>Support the Artist</p>
+              <a 
+                href={`https://music.apple.com/search?term=${selectedArtist}`} 
+                target="_blank" rel="noopener noreferrer"
+                style={{...styles.affiliateBtn, background: '#fff', color: '#000'}}
+              >
+                🍎 Listen on Apple Music
+              </a>
+              <a 
+                href={`https://open.spotify.com/search/${selectedArtist}`} 
+                target="_blank" rel="noopener noreferrer"
+                style={{...styles.affiliateBtn, background: '#1DB954', color: '#fff'}}
+              >
+                🎧 Open in Spotify
+              </a>
+            </div>
+
+            <button style={{...styles.playBtn, marginTop: '10px'}} onClick={() => setView('home')}>RETRY</button>
             <AdSlot id="results_banner" />
           </div>
         )}
@@ -294,5 +312,8 @@ const styles = {
   loginInput: { width: '100%', padding: '15px', background: '#222', border: 'none', borderRadius: '10px', color: 'white', textAlign: 'center', outline: 'none' },
   loader: { textAlign: 'center', color: '#E50914', padding: '20px' },
   footer: { textAlign: 'center', marginTop: '40px' },
-  instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' }
+  instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' },
+  // Affiliate specific styles
+  discoveryBox: { marginTop: '20px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px' },
+  affiliateBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '12px', borderRadius: '10px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }
 };
