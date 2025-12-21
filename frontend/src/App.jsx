@@ -39,14 +39,24 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [leaderboard, setLeaderboard] = useState([]);
   
-  // Persistent State for Artist Info
-  const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('last_artist') || '');
-  const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('last_img') || '');
+  // Artist Persistence
+  const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('v_name') || '');
+  const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('v_img') || '');
   
   const [countdown, setCountdown] = useState(null); 
   const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
+
+  // Sync state with storage whenever we are on the results/share screen
+  useEffect(() => {
+    if (view === 'results' || view === 'share') {
+        const savedName = sessionStorage.getItem('v_name');
+        const savedImg = sessionStorage.getItem('v_img');
+        if (savedName && !selectedArtist) setSelectedArtist(savedName);
+        if (savedImg && !selectedArtistImg) setSelectedArtistImg(savedImg);
+    }
+  }, [view]);
 
   useEffect(() => {
     fetch(`${API_URL}/api/artists`).then(res => res.json()).then(setArtists);
@@ -75,11 +85,10 @@ export default function App() {
 
   const startGameSetup = async (a) => {
     setLoading(true);
-    // SAVE TO STATE AND SESSION STORAGE (PERSISTENCE)
     setSelectedArtist(a.name);
     setSelectedArtistImg(a.picture_medium);
-    sessionStorage.setItem('last_artist', a.name);
-    sessionStorage.setItem('last_img', a.picture_medium);
+    sessionStorage.setItem('v_name', a.name);
+    sessionStorage.setItem('v_img', a.picture_medium);
 
     try {
       const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
@@ -215,9 +224,9 @@ export default function App() {
             </div>
 
             <div style={styles.discoveryBox}>
-              <p style={{fontSize: '0.6rem', opacity: 0.5, marginBottom: '8px'}}>SUPPORT THE ARTIST</p>
+              <p style={{fontSize: '0.6rem', opacity: 0.5, marginBottom: '8px'}}>LISTEN ON</p>
               <a href={`https://music.apple.com/search?term=${selectedArtist}`} target="_blank" rel="noreferrer" style={{...styles.affiliateBtn, background: '#fff', color: '#000'}}>🍎 Apple Music</a>
-              <a href={`https://open.spotify.com/search/$${selectedArtist}`} target="_blank" rel="noreferrer" style={{...styles.affiliateBtn, background: '#1DB954', color: '#fff'}}>🎧 Spotify</a>
+              <a href={`https://open.spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={{...styles.affiliateBtn, background: '#1DB954', color: '#fff'}}>🎧 Spotify</a>
             </div>
 
             <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '15px'}} onClick={() => setView('share')}>SHARE RESULT</button>
@@ -227,30 +236,61 @@ export default function App() {
         )}
 
         {view === 'share' && (
-          <div style={styles.sharePage}>
-            <div style={styles.shareCard}>
-              <div style={{color: '#E50914', fontSize: '1rem', fontWeight: '900', letterSpacing: '4px', marginBottom: '20px'}}>VECTFLIX</div>
+          <div style={{textAlign: 'center', padding: '10px'}}>
+            <div style={{
+              background: '#0a0a0a', 
+              padding: '40px 20px', 
+              borderRadius: '35px', 
+              border: '4px solid #E50914', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              boxShadow: '0 10px 30px rgba(229, 9, 20, 0.2)'
+            }}>
+              <div style={{color: '#E50914', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '5px', marginBottom: '25px'}}>VECTFLIX</div>
               
-              {/* PERSISTENT ARTIST IMAGE */}
-              <div style={styles.shareImageContainer}>
-                <img src={selectedArtistImg || "https://via.placeholder.com/150"} style={styles.shareArtistImg} alt="artist" />
-                <div style={styles.verifiedBadge}>✔️</div>
+              {/* IMAGE & BADGE AREA */}
+              <div style={{position: 'relative', width: '150px', height: '150px', marginBottom: '20px'}}>
+                <img 
+                  src={selectedArtistImg || "https://via.placeholder.com/150"} 
+                  style={{width: '100%', height: '100%', borderRadius: '50%', border: '4px solid #E50914', objectFit: 'cover'}} 
+                  alt="artist" 
+                />
+                <div style={{
+                  position: 'absolute', 
+                  bottom: '5px', 
+                  right: '5px', 
+                  background: '#1da1f2', 
+                  width: '35px', 
+                  height: '35px', 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  fontSize: '18px', 
+                  border: '3px solid #0a0a0a',
+                  color: 'white',
+                  zIndex: 10
+                }}>✓</div>
               </div>
               
-              {/* PERSISTENT ARTIST NAME */}
-              <h2 style={styles.shareArtistName}>{selectedArtist || "TOP ARTIST"}</h2>
-              <div style={styles.verifiedLabel}>VERIFIED ARTIST</div>
+              {/* TEXT AREA */}
+              <h2 style={{margin: '0', fontSize: '1.8rem', color: '#fff', fontWeight: '800', textTransform: 'uppercase'}}>
+                {selectedArtist || "TOP ARTIST"}
+              </h2>
+              <div style={{fontSize: '0.7rem', color: '#E50914', fontWeight: 'bold', marginTop: '5px', letterSpacing: '2px'}}>VERIFIED ARTIST</div>
               
-              <div style={styles.shareScoreText}>{score}/10</div>
-              <p style={{opacity: 0.8, fontSize: '0.9rem'}}>New High Score!</p>
+              <div style={{fontSize: '5.5rem', fontWeight: '900', color: '#E50914', lineHeight: '1', margin: '20px 0'}}>
+                {score}/10
+              </div>
               
-              <div style={styles.shareUrlWatermark}>
+              <div style={{opacity: 0.5, fontSize: '0.7rem', marginTop: '20px', borderTop: '1px solid #222', paddingTop: '15px', width: '80%'}}>
                 musicquiz-github-io.vercel.app
               </div>
             </div>
             
-            <p style={{fontSize: '0.8rem', margin: '20px 0'}}>Screenshot & tag **@vecteezy_1**</p>
-            <button style={{...styles.playBtn, background: '#222', marginBottom: '10px'}} onClick={copyToClipboard}>📋 COPY TEXT SCORE</button>
+            <p style={{fontSize: '0.8rem', margin: '20px 0', color: '#aaa'}}>Screenshot & tag **@vecteezy_1**</p>
+            <button style={{...styles.playBtn, background: '#222', marginBottom: '10px'}} onClick={copyToClipboard}>📋 COPY LINK</button>
             <button style={styles.playBtn} onClick={() => setView('results')}>← BACK</button>
           </div>
         )}
@@ -311,18 +351,6 @@ const styles = {
   leaderboardRow: { display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '5px 0' },
   discoveryBox: { marginTop: '20px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px' },
   affiliateBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '8px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' },
-  
-  // SHARE PAGE SPECIFIC STYLES
-  sharePage: { textAlign: 'center', paddingTop: '20px' },
-  shareCard: { background: '#080808', padding: '40px 20px', borderRadius: '30px', border: '3px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' },
-  shareImageContainer: { position: 'relative', width: '160px', height: '160px', marginBottom: '15px' },
-  shareArtistImg: { width: '100%', height: '100%', borderRadius: '50%', border: '4px solid #E50914', objectFit: 'cover', display: 'block' },
-  verifiedBadge: { position: 'absolute', bottom: '10px', right: '10px', background: '#1da1f2', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', border: '3px solid #080808', color: 'white' },
-  shareArtistName: { margin: '0', fontSize: '1.8rem', fontWeight: 'bold', color: 'white', textTransform: 'uppercase' },
-  verifiedLabel: { fontSize: '0.7rem', color: '#E50914', fontWeight: 'bold', marginTop: '4px', letterSpacing: '1px' },
-  shareScoreText: { fontSize: '5rem', fontWeight: '900', color: '#E50914', margin: '5px 0' },
-  shareUrlWatermark: { marginTop: '20px', padding: '10px', borderTop: '1px solid #333', width: '80%', fontSize: '0.7rem', opacity: 0.4 },
-
   adSlot: { margin: '20px 0', textAlign: 'center' },
   adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px' },
   legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
