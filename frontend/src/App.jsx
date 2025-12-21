@@ -69,15 +69,16 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [view, countdown]);
 
-  // --- 🌍 GLOBAL ARTIST SEARCH LOGIC ---
+  // --- 🌍 UPDATED GLOBAL ARTIST SEARCH LOGIC ---
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      if (searchTerm.trim()) {
+      // Only search if user types more than 1 character
+      if (searchTerm.trim().length > 1) {
         searchGlobalArtists(searchTerm);
-      } else {
+      } else if (searchTerm.trim().length === 0) {
         fetchTopArtists();
       }
-    }, 500); // Wait 500ms after user stops typing to save API calls
+    }, 500); 
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
@@ -87,7 +88,8 @@ export default function App() {
     try {
       const res = await fetch(`${API_URL}/api/artists`);
       const data = await res.json();
-      setArtists(data);
+      // Ensure we only store valid artist objects
+      setArtists(data.filter(a => a.name && a.picture_medium));
     } catch (e) { console.error("Server warming up..."); }
     setIsFetchingArtists(false);
   };
@@ -95,10 +97,16 @@ export default function App() {
   const searchGlobalArtists = async (query) => {
     setIsFetchingArtists(true);
     try {
-      // Calls your server which proxies to Deezer Search
-      const res = await fetch(`${API_URL}/api/search/artists?q=${query}`);
+      // Note: Endpoint explicitly targets /api/search/artists as per your peak server.js
+      const res = await fetch(`${API_URL}/api/search/artists?q=${encodeURIComponent(query)}`);
       const data = await res.json();
-      setArtists(data);
+      
+      // STRICT FILTER: Only items that are type "artist" and have a valid image
+      const filteredArtists = data.filter(item => 
+        (item.type === 'artist' || !item.type) && item.name && item.picture_medium
+      );
+      
+      setArtists(filteredArtists);
     } catch (e) { console.error("Search failed"); }
     setIsFetchingArtists(false);
   };
@@ -112,6 +120,7 @@ export default function App() {
     try {
       const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
       const data = await res.json();
+      if(data.error) throw new Error(data.error);
       setAllRounds(data);
       setScore(0);
       setRoundIndex(0);
@@ -137,9 +146,9 @@ export default function App() {
   };
 
   const rankings = [
-    { user: "TopDawg", score: 10, date: "Today" },
+    { user: "VECTFLIX_KING", score: 10, date: "Today" },
     { user: username || "You", score: score, date: "Just now" },
-    { user: "MusicLvr", score: 9, date: "Yesterday" }
+    { user: "MusicPro", score: 9, date: "Yesterday" }
   ];
 
   return (
@@ -149,7 +158,7 @@ export default function App() {
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={styles.glassCardResults}>
-              <h2 style={{color: '#E50914'}}>VECTFLIX</h2>
+              <h2 style={{color: '#E50914', letterSpacing: '4px'}}>VECTFLIX</h2>
               <input style={styles.loginInput} placeholder="Username..." value={tempName} onChange={(e) => setTempName(e.target.value)} />
               <button style={styles.playBtn} onClick={() => {if(tempName){localStorage.setItem('vectflix_user', tempName); setUsername(tempName); setIsLoggedIn(true);}}}>ENTER</button>
             </div>
@@ -168,21 +177,21 @@ export default function App() {
             <div style={styles.searchContainer}>
               <input 
                 type="text" 
-                placeholder="Search any artist globally..." 
+                placeholder="Search global artists (e.g. Drake)..." 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
                 style={styles.searchInput} 
               />
-              {isFetchingArtists && <p style={{fontSize: '0.6rem', color: '#E50914', marginTop: '5px'}}>Searching database...</p>}
+              {isFetchingArtists && <div style={styles.loaderLine}></div>}
             </div>
 
             <div style={styles.artistGrid}>
-              {artists.map(a => (
+              {artists.length > 0 ? artists.map(a => (
                 <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
                   <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
                   <p style={styles.artistName}>{a.name}</p>
                 </div>
-              ))}
+              )) : !isFetchingArtists && <p style={{gridColumn: '1/-1', textAlign: 'center', opacity: 0.3}}>No artists found.</p>}
             </div>
 
             <div style={styles.legalSection}>
@@ -215,6 +224,7 @@ export default function App() {
         {view === 'game' && allRounds[roundIndex] && (
           <div style={styles.gameCard}>
             <audio autoPlay src={allRounds[roundIndex].preview} />
+            <div style={styles.progressBar}><div style={{...styles.progressFill, width: `${(roundIndex + 1) * 10}%`}}></div></div>
             <p style={{opacity: 0.5, marginBottom: '20px'}}>ROUND {roundIndex + 1}/10</p>
             <div style={styles.choicesGrid}>
               {allRounds[roundIndex].choices.map(c => (
@@ -283,30 +293,33 @@ const styles = {
   appWrapper: { minHeight: '100vh', background: '#000', color: 'white', fontFamily: 'sans-serif' },
   container: { maxWidth: '400px', margin: '0 auto', padding: '20px' },
   header: { padding: '20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' },
-  logo: { color: '#E50914', fontSize: '1.5rem', fontWeight: 'bold' },
+  logo: { color: '#E50914', fontSize: '1.5rem', fontWeight: '900', letterSpacing: '2px' },
   userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
   heroText: { fontSize: '2rem', marginBottom: '20px', fontWeight: '900' },
-  searchContainer: { marginBottom: '25px' },
-  searchInput: { width: '100%', padding: '15px', background: '#111', border: '1px solid #333', borderRadius: '12px', color: 'white', fontSize: '1rem', outline: 'none' },
+  searchContainer: { marginBottom: '25px', position: 'relative' },
+  searchInput: { width: '100%', padding: '18px', background: '#111', border: '1px solid #333', borderRadius: '15px', color: 'white', fontSize: '1rem', outline: 'none', boxSizing: 'border-box' },
+  loaderLine: { height: '2px', background: '#E50914', width: '30%', position: 'absolute', bottom: '0', borderRadius: '2px' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
   artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
-  artistName: { fontSize: '0.7rem', marginTop: '5px' },
+  artistName: { fontSize: '0.7rem', marginTop: '5px', fontWeight: 'bold' },
   gameCard: { background: '#111', padding: '40px 20px', borderRadius: '30px', textAlign: 'center' },
+  progressBar: { width: '100%', height: '4px', background: '#222', borderRadius: '2px', marginBottom: '10px' },
+  progressFill: { height: '100%', background: '#E50914', transition: '0.4s' },
   choicesGrid: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '12px', textAlign: 'left', fontWeight: 'bold' },
+  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '12px', textAlign: 'left', fontWeight: 'bold', cursor: 'pointer' },
   glassCardResults: { background: '#111', padding: '40px 20px', borderRadius: '35px', textAlign: 'center' },
   statusDot: { width: '8px', height: '8px', background: '#E50914', borderRadius: '50%', display: 'inline-block', marginRight: '8px' },
   linkButtonWhite: { textDecoration:'none', background:'#fff', color:'#000', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
   linkButtonGreen: { textDecoration:'none', background:'#1DB954', color:'#fff', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
-  resultsArtistImg: { width: '80px', borderRadius: '50%', marginBottom: '10px' },
+  resultsArtistImg: { width: '80px', height: '80px', borderRadius: '50%', marginBottom: '10px', objectFit: 'cover' },
   playBtn: { width: '100%', padding: '16px', background: '#E50914', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
   shareCard: { background: '#0a0a0a', padding: '60px 20px', borderRadius: '45px', border: '4px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   verifiedBadge: { background: '#1da1f2', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: 'white' },
   adSlot: { margin: '30px 0', textAlign: 'center' },
   adPlaceholder: { minHeight: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px' },
   loginOverlay: { position: 'fixed', inset: 0, background: '#000', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
-  loginInput: { width: '100%', padding: '15px', background: '#222', border: 'none', borderRadius: '10px', color: 'white', textAlign: 'center', margin: '20px 0' },
+  loginInput: { width: '100%', padding: '18px', background: '#222', border: '1px solid #E50914', borderRadius: '10px', color: 'white', textAlign: 'center', margin: '20px 0' },
   footer: { textAlign: 'center', marginTop: '40px', paddingBottom: '20px' },
   instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' },
   legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px' },
