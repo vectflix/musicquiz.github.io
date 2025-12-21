@@ -183,7 +183,6 @@ export default function App() {
             )}
             <AdSlot id="home_banner" />
             
-            {/* LEGAL & ABOUT SECTION */}
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
@@ -233,14 +232,27 @@ export default function App() {
         {view === 'share' && (
           <div style={styles.sharePage}>
             <div style={styles.shareCard}>
-              <h1 style={{color: '#E50914', fontSize: '1rem', letterSpacing: '2px'}}>VECTFLIX</h1>
-              <img src={selectedArtistImg} style={{width: '120px', borderRadius: '50%', border: '4px solid #E50914', margin: '20px 0'}} alt="artist" />
-              <h2 style={{margin: '0'}}>{selectedArtist}</h2>
-              <div style={{fontSize: '3.5rem', fontWeight: 'bold', color: '#E50914'}}>{score}/10</div>
-              <p style={{opacity: 0.6}}>Can you beat my score?</p>
-              <p style={{fontSize: '0.6rem', marginTop: '20px', opacity: 0.4}}>VECTFLIX | Guess the Hit</p>
+              <div style={{color: '#E50914', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '3px', marginBottom: '20px'}}>VECTFLIX</div>
+              
+              {/* ARTIST PROFILE CIRCLE */}
+              <div style={{position: 'relative', marginBottom: '15px'}}>
+                <img src={selectedArtistImg} style={styles.shareArtistImg} alt="artist" />
+                <div style={styles.verifiedBadge}>✔️</div>
+              </div>
+              
+              <h2 style={{margin: '0', fontSize: '1.5rem'}}>{selectedArtist}</h2>
+              <p style={{fontSize: '0.7rem', color: '#E50914', marginTop: '5px', fontWeight: 'bold'}}>VERIFIED ARTIST</p>
+              
+              <div style={{fontSize: '4.5rem', fontWeight: 'bold', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
+              
+              <p style={{opacity: 0.6, fontSize: '0.9rem'}}>Think you can beat me?</p>
+              
+              <div style={{marginTop: '25px', padding: '10px', borderTop: '1px solid #333', width: '80%', fontSize: '0.6rem', opacity: 0.4}}>
+                musicquiz-github-io.vercel.app
+              </div>
             </div>
-            <p style={{fontSize: '0.8rem', margin: '20px 0'}}>Screenshot or Copy to Share!</p>
+            
+            <p style={{fontSize: '0.8rem', margin: '20px 0'}}>Screenshot and tag **@vecteezy_1**</p>
             <button style={{...styles.playBtn, background: '#222', marginBottom: '10px'}} onClick={copyToClipboard}>📋 COPY TEXT SCORE</button>
             <button style={styles.playBtn} onClick={() => setView('results')}>← BACK</button>
           </div>
@@ -303,7 +315,9 @@ const styles = {
   discoveryBox: { marginTop: '20px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px' },
   affiliateBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '8px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' },
   sharePage: { textAlign: 'center' },
-  shareCard: { background: '#111', padding: '40px 20px', borderRadius: '30px', border: '2px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  shareCard: { background: '#111', padding: '40px 20px', borderRadius: '30px', border: '2px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' },
+  shareArtistImg: { width: '150px', height: '150px', borderRadius: '50%', border: '4px solid #E50914', objectFit: 'cover' },
+  verifiedBadge: { position: 'absolute', bottom: '10px', right: '10px', background: '#1da1f2', width: '25px', height: '25px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', border: '2px solid #111' },
   adSlot: { margin: '20px 0', textAlign: 'center' },
   adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px' },
   legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
