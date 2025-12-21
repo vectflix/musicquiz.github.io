@@ -4,28 +4,19 @@ import React, { useState, useEffect, useRef } from 'react';
 const API_URL = "https://music-guessing-api-v3.onrender.com"; 
 
 const LEGAL_TEXT = {
-  about: "VECTFLIX is a premium high-speed music guessing game designed for true audiophiles. Using the official Deezer API, we provide high-quality 30-second song previews to test your knowledge of your favorite artists in real-time. Created by @vecteezy_1.",
+  about: "VECTFLIX is a premium high-speed music guessing game designed for true audiophiles. Created by @vecteezy_1.",
   howToPlay: "Select an artist, listen to the clip, and guess the title. You have 10 rounds to prove your skills!",
-  privacy: "Privacy Policy: We store high scores locally. No personal data is collected.",
-  cookies: "Cookies Policy: We use cookies for analytics and personalized ads via Google AdSense."
+  privacy: "Privacy Policy: We store high scores locally.",
+  cookies: "Cookies Policy: We use cookies for ads via Google AdSense."
 };
 
-// --- 💰 AD COMPONENT ---
 const AdSlot = ({ id }) => {
   useEffect(() => {
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
   }, []);
   return (
     <div style={styles.adSlot}>
-      <p style={{fontSize: '0.6rem', color: '#444', marginBottom: '8px'}}>ADVERTISEMENT</p>
-      <div style={styles.adPlaceholder}>
-        <ins className="adsbygoogle" 
-             style={{ display: 'block' }} 
-             data-ad-client="ca-pub-6249624506404198" 
-             data-ad-slot={id} 
-             data-ad-format="auto" 
-             data-full-width-responsive="true"></ins>
-      </div>
+      <ins className="adsbygoogle" style={{ display: 'block' }} data-ad-client="ca-pub-6249624506404198" data-ad-slot={id} data-ad-format="auto" data-full-width-responsive="true"></ins>
     </div>
   );
 };
@@ -49,9 +40,7 @@ export default function App() {
 
   useEffect(() => {
     if ((view === 'game' || view === 'ready') && allRounds[roundIndex]) {
-      const audio = new Audio();
-      audio.src = allRounds[roundIndex].preview;
-      audio.preload = "auto";
+      new Audio(allRounds[roundIndex].preview).preload = "auto";
     }
   }, [roundIndex, view, allRounds]);
 
@@ -72,11 +61,9 @@ export default function App() {
     e.preventDefault();
     if (!searchTerm.trim()) return;
     setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/search/${searchTerm}`);
-      const data = await res.json();
-      setArtists(data);
-    } catch (err) { console.error("Search failed"); }
+    const res = await fetch(`${API_URL}/api/search/${searchTerm}`);
+    const data = await res.json();
+    setArtists(data);
     setLoading(false);
   };
 
@@ -84,15 +71,10 @@ export default function App() {
     setLoading(true);
     setSelectedArtist(a.name);
     setSelectedArtistImg(a.picture_medium);
-    try {
-      const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
-      const data = await res.json();
-      setAllRounds(data);
-      setScore(0);
-      setRoundIndex(0);
-      setCountdown(null);
-      setView('ready');
-    } catch (err) { alert("Server warming up!"); }
+    const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
+    const data = await res.json();
+    setAllRounds(data);
+    setScore(0); setRoundIndex(0); setView('ready');
     setLoading(false);
   };
 
@@ -100,26 +82,19 @@ export default function App() {
     setCountdown(3);
     const timer = setInterval(() => {
       setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setView('game');
-          return null;
-        }
+        if (prev <= 1) { clearInterval(timer); setView('game'); return null; }
         return prev - 1;
       });
     }, 1000);
   };
 
   const updateLeaderboard = async (finalScore) => {
-    try {
-      const res = await fetch(`${API_URL}/api/leaderboard`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: username || "Guest", score: finalScore })
-      });
-      const data = await res.json();
-      setLeaderboard(data);
-    } catch (err) { console.error("Leaderboard error"); }
+    const res = await fetch(`${API_URL}/api/leaderboard`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: username || "Guest", score: finalScore })
+    });
+    setLeaderboard(await res.json());
   };
 
   const handleAnswer = (wasCorrect) => {
@@ -136,15 +111,13 @@ export default function App() {
   return (
     <div style={styles.appWrapper}>
       <div style={styles.container}>
-        
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={styles.glassCardResults}>
-              <h2 style={{color: '#E50914', marginBottom: '10px'}}>VECTFLIX</h2>
-              <p style={{fontSize: '0.9rem', opacity: 0.7}}>Enter username to start</p>
+              <h2 style={{color: '#E50914'}}>VECTFLIX</h2>
               <form onSubmit={handleLogin} style={{marginTop: '20px'}}>
                 <input style={styles.loginInput} placeholder="Username..." value={tempName} onChange={(e) => setTempName(e.target.value)} maxLength={12} />
-                <button type="submit" style={styles.playBtn}>ENTER GAME</button>
+                <button type="submit" style={styles.playBtn}>ENTER</button>
               </form>
             </div>
           </div>
@@ -164,40 +137,23 @@ export default function App() {
                 <button type="submit" style={styles.searchBtn}>🔍</button>
               </form>
             </div>
-
-            <h3 style={styles.sectionTitle}>Trending</h3>
-            {loading ? <div style={styles.loader}>🎧 LOADING...</div> : (
-              <div style={styles.artistGrid}>
-                {artists.map(a => (
-                  <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                    <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                    <p style={styles.artistName}>{a.name}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-            <AdSlot id="home_banner" />
-            
-            <div style={styles.legalSection}>
-              <h4 style={styles.legalHeading}>About VECTFLIX</h4>
-              <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
-              <h4 style={styles.legalHeading}>Privacy & Cookies</h4>
-              <p style={styles.legalBody}>{LEGAL_TEXT.cookies}</p>
+            <div style={styles.artistGrid}>
+              {artists.map(a => (
+                <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
+                  <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
+                  <p style={styles.artistName}>{a.name}</p>
+                </div>
+              ))}
             </div>
+            <AdSlot id="home_banner" />
           </main>
         )}
 
         {view === 'ready' && (
           <div style={styles.glassCardResults}>
             <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
-            <h2 style={{margin: '10px 0', fontSize: '1.8rem'}}>{selectedArtist}</h2>
-            <p style={{opacity: 0.5, marginBottom: '25px'}}>{countdown ? "GET READY..." : "10 Rounds Ready"}</p>
-            
-            <button 
-              style={{...styles.playBtn, background: countdown ? '#555' : '#E50914'}} 
-              onClick={triggerCountdown}
-              disabled={countdown !== null}
-            >
+            <h2>{selectedArtist}</h2>
+            <button style={{...styles.playBtn, background: countdown ? '#555' : '#E50914'}} onClick={triggerCountdown} disabled={countdown !== null}>
               {countdown ? countdown : "START GAME"}
             </button>
           </div>
@@ -209,39 +165,34 @@ export default function App() {
 
         {view === 'results' && (
           <div style={styles.glassCardResults}>
-            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
+            <h4 style={{opacity: 0.5}}>GAME OVER</h4>
             <h2 style={{fontSize: '3rem'}}>{score}/10</h2>
             <div style={styles.leaderboardBox}>
-               <h4 style={styles.leaderboardTitle}>GLOBAL TOP 5</h4>
+               <h4 style={styles.leaderboardTitle}>TOP 5</h4>
                {leaderboard.map((entry, i) => (
-                 <div key={i} style={styles.leaderboardRow}>
-                   <span>{i+1}. {entry.name}</span>
-                   <span style={{color: '#E50914'}}>{entry.score} pts</span>
-                 </div>
+                 <div key={i} style={styles.leaderboardRow}><span>{entry.name}</span><span>{entry.score} pts</span></div>
                ))}
             </div>
-
-            {/* --- 🎵 MUSIC DISCOVERY (NEW) --- */}
-            <div style={styles.discoveryBox}>
-              <p style={{fontSize: '0.7rem', opacity: 0.5, marginBottom: '10px', textTransform: 'uppercase'}}>Support the Artist</p>
-              <a 
-                href={`https://music.apple.com/search?term=${selectedArtist}`} 
-                target="_blank" rel="noopener noreferrer"
-                style={{...styles.affiliateBtn, background: '#fff', color: '#000'}}
-              >
-                🍎 Listen on Apple Music
-              </a>
-              <a 
-                href={`https://open.spotify.com/search/${selectedArtist}`} 
-                target="_blank" rel="noopener noreferrer"
-                style={{...styles.affiliateBtn, background: '#1DB954', color: '#fff'}}
-              >
-                🎧 Open in Spotify
-              </a>
-            </div>
-
+            {/* GO TO SHARE PAGE */}
+            <button style={{...styles.playBtn, background: '#1da1f2'}} onClick={() => setView('share')}>SHARE RESULT</button>
             <button style={{...styles.playBtn, marginTop: '10px'}} onClick={() => setView('home')}>RETRY</button>
-            <AdSlot id="results_banner" />
+          </div>
+        )}
+
+        {/* --- NEW: THE SHARE PAGE --- */}
+        {view === 'share' && (
+          <div style={styles.sharePage}>
+            <div id="capture-card" style={styles.shareCard}>
+              <h1 style={{color: '#E50914', fontSize: '1rem'}}>VECTFLIX</h1>
+              <img src={selectedArtistImg} style={{width: '100px', borderRadius: '50%', border: '4px solid #E50914'}} alt="artist" />
+              <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
+              <div style={{fontSize: '2.5rem', fontWeight: 'bold'}}>{score}/10</div>
+              <p style={{opacity: 0.6}}>Can you beat me?</p>
+              <p style={{fontSize: '0.6rem', marginTop: '15px'}}>musicquiz-github-io.vercel.app</p>
+            </div>
+            
+            <p style={{fontSize: '0.8rem', margin: '20px 0'}}>Screenshot this to share on IG!</p>
+            <button style={styles.playBtn} onClick={() => setView('results')}>← BACK</button>
           </div>
         )}
 
@@ -256,19 +207,16 @@ export default function App() {
 function GameRound({ roundData, roundNum, onAnswer }) {
   const [timeLeft, setTimeLeft] = useState(10);
   const audioRef = useRef(new Audio(roundData.preview));
-
   useEffect(() => {
-    const audio = audioRef.current;
-    audio.play().catch(() => {});
+    audioRef.current.play().catch(() => {});
     const timer = setInterval(() => {
       setTimeLeft(t => { if (t <= 1) { onAnswer(false); return 0; } return t - 1; });
     }, 1000);
-    return () => { clearInterval(timer); audio.pause(); };
+    return () => { clearInterval(timer); audioRef.current.pause(); };
   }, [roundData]);
-
   return (
     <div style={styles.gameCard}>
-      <p style={{fontWeight:'bold', marginBottom:'20px'}}>ROUND {roundNum}/10 • {timeLeft}s</p>
+      <p>ROUND {roundNum}/10 • {timeLeft}s</p>
       <div style={styles.choicesGrid}>
         {roundData.choices.map(c => (
           <button key={c.id} style={styles.choiceBtn} onClick={() => onAnswer(c.id === roundData.correctId)}>{c.title}</button>
@@ -285,35 +233,24 @@ const styles = {
   logo: { color: '#E50914', fontSize: '1.5rem', fontWeight: 'bold' },
   userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
   heroSection: { marginBottom: '30px' },
-  heroText: { fontSize: '2rem', marginBottom: '15px' },
-  searchBox: { display: 'flex', background: '#222', borderRadius: '15px', padding: '5px 10px', alignItems: 'center' },
+  heroText: { fontSize: '2rem' },
+  searchBox: { display: 'flex', background: '#222', borderRadius: '15px', padding: '5px 10px', marginTop: '15px' },
   searchBar: { flex: 1, background: 'transparent', border: 'none', color: 'white', padding: '12px', outline: 'none' },
-  searchBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' },
-  sectionTitle: { fontSize: '0.7rem', opacity: 0.5, textTransform: 'uppercase', marginBottom: '15px' },
+  searchBtn: { background: 'none', border: 'none', cursor: 'pointer' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
-  artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
+  artistImg: { width: '100%', borderRadius: '50%' },
   artistName: { fontSize: '0.7rem', marginTop: '5px' },
   gameCard: { background: '#111', padding: '20px', borderRadius: '20px', textAlign: 'center' },
   choicesGrid: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', textAlign: 'left' },
+  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '10px', textAlign: 'left' },
   glassCardResults: { background: '#111', padding: '30px', borderRadius: '30px', textAlign: 'center' },
   resultsArtistImg: { width: '80px', borderRadius: '50%', marginBottom: '10px' },
-  playBtn: { width: '100%', padding: '15px', background: '#E50914', color: 'white', border: 'none', borderRadius: '10px', marginTop: '20px', fontWeight: 'bold', cursor: 'pointer' },
+  playBtn: { width: '100%', padding: '15px', background: '#E50914', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' },
   leaderboardBox: { margin: '20px 0', background: '#000', padding: '15px', borderRadius: '10px', textAlign: 'left' },
-  leaderboardTitle: { fontSize: '0.7rem', opacity: 0.5, marginBottom: '10px' },
   leaderboardRow: { display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '5px 0' },
-  legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px' },
-  legalHeading: { fontSize: '0.7rem', textTransform: 'uppercase', color: '#E50914' },
-  legalBody: { fontSize: '0.6rem', marginBottom: '10px', opacity: 0.5 },
-  adSlot: { margin: '20px 0', textAlign: 'center' },
-  adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px' },
-  loginOverlay: { position: 'fixed', top:0, left:0, right:0, bottom:0, background:'#000', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
-  loginInput: { width: '100%', padding: '15px', background: '#222', border: 'none', borderRadius: '10px', color: 'white', textAlign: 'center', outline: 'none' },
-  loader: { textAlign: 'center', color: '#E50914', padding: '20px' },
+  sharePage: { textAlign: 'center', padding: '10px' },
+  shareCard: { background: '#111', padding: '40px 20px', borderRadius: '20px', border: '1px solid #333', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   footer: { textAlign: 'center', marginTop: '40px' },
-  instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' },
-  // Affiliate specific styles
-  discoveryBox: { marginTop: '20px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px' },
-  affiliateBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '12px', borderRadius: '10px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' }
+  instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' }
 };
