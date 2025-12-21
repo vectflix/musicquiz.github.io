@@ -32,11 +32,13 @@ const AdSlot = ({ id }) => {
 export default function App() {
   const [view, setView] = useState('home'); 
   const [loading, setLoading] = useState(false);
+  const [isFetchingArtists, setIsFetchingArtists] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
   const [allRounds, setAllRounds] = useState([]);
   const [roundIndex, setRoundIndex] = useState(0);
   const [score, setScore] = useState(0);
+  const [countdown, setCountdown] = useState(0); // For the 5s Mandatory wait
   
   const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('v_name') || '');
   const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('v_img') || '');
@@ -45,7 +47,33 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // Mock Ranking Data (Usually fetched from API)
+  // --- 🚀 ULTRA-SPEED: PRELOAD 3 ROUNDS AHEAD ---
+  useEffect(() => {
+    if (view === 'game' || view === 'ready' && allRounds.length > 0) {
+      for (let i = 0; i <= 3; i++) {
+        const targetRound = allRounds[roundIndex + i];
+        if (targetRound && targetRound.preview) {
+          const audioPreload = new Audio();
+          audioPreload.src = targetRound.preview;
+          audioPreload.preload = "auto";
+        }
+      }
+    }
+  }, [view, roundIndex, allRounds]);
+
+  // --- ⏱️ MANDATORY COUNTDOWN LOGIC ---
+  useEffect(() => {
+    let timer;
+    if (view === 'ready' && countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [view, countdown]);
+
+  const filteredArtists = artists.filter(a => 
+    a.name && a.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const rankings = [
     { user: "TopDawg", score: 10, date: "Today" },
     { user: username || "You", score: score, date: "Just now" },
@@ -53,21 +81,19 @@ export default function App() {
     { user: "BeatMaster", score: 8, date: "2 days ago" },
   ];
 
-  const filteredArtists = artists.filter(a => 
-    a.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const fetchArtists = () => {
+    setIsFetchingArtists(true);
+    fetch(`${API_URL}/api/artists`)
+      .then(res => res.json())
+      .then(data => {
+        setArtists(data);
+        setIsFetchingArtists(false);
+      })
+      .catch(() => setIsFetchingArtists(false));
+  };
 
   useEffect(() => {
-    if (view === 'results' || view === 'share') {
-        const savedName = sessionStorage.getItem('v_name');
-        const savedImg = sessionStorage.getItem('v_img');
-        if (savedName && !selectedArtist) setSelectedArtist(savedName);
-        if (savedImg && !selectedArtistImg) setSelectedArtistImg(savedImg);
-    }
-  }, [view]);
-
-  useEffect(() => {
-    fetch(`${API_URL}/api/artists`).then(res => res.json()).then(setArtists);
+    fetchArtists();
   }, []);
 
   const startGameSetup = async (a) => {
@@ -83,7 +109,8 @@ export default function App() {
       setScore(0);
       setRoundIndex(0);
       setView('ready');
-    } catch (err) { alert("Server warming up!"); }
+      setCountdown(5); // Start the mandatory 5s check
+    } catch (err) { alert("Server warming up! Try again in 5 seconds."); }
     setLoading(false);
   }
 
@@ -111,7 +138,7 @@ export default function App() {
             <div style={styles.glassCardResults}>
               <h2 style={{color: '#E50914'}}>VECTFLIX</h2>
               <input style={styles.loginInput} placeholder="Username..." value={tempName} onChange={(e) => setTempName(e.target.value)} />
-              <button style={styles.playBtn} onClick={() => {localStorage.setItem('vectflix_user', tempName); setUsername(tempName); setIsLoggedIn(true);}}>ENTER</button>
+              <button style={styles.playBtn} onClick={() => {if(tempName){localStorage.setItem('vectflix_user', tempName); setUsername(tempName); setIsLoggedIn(true);}}}>ENTER</button>
             </div>
           </div>
         )}
@@ -124,17 +151,29 @@ export default function App() {
         {view === 'home' && (
           <main>
             <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
+            
             <div style={styles.searchContainer}>
               <input type="text" placeholder="Search artists..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
             </div>
+
             <div style={styles.artistGrid}>
-              {filteredArtists.map(a => (
-                <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                  <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                  <p style={styles.artistName}>{a.name}</p>
+              {isFetchingArtists ? (
+                <div style={{gridColumn: '1/-1', textAlign: 'center'}}>
+                    <p style={{opacity: 0.5}}>Waking up server...</p>
+                    <button onClick={fetchArtists} style={{background:'none', border:'none', color:'#E50914', cursor:'pointer', fontSize:'0.8rem'}}>RETRY</button>
                 </div>
-              ))}
+              ) : filteredArtists.length > 0 ? (
+                filteredArtists.map(a => (
+                  <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
+                    <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
+                    <p style={styles.artistName}>{a.name}</p>
+                  </div>
+                ))
+              ) : (
+                <p style={{gridColumn: '1/-1', textAlign: 'center', opacity: 0.5}}>No artists found for "{searchTerm}"</p>
+              )}
             </div>
+
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
@@ -148,7 +187,18 @@ export default function App() {
           <div style={styles.glassCardResults}>
             <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
             <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
-            <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
+            
+            <div style={{margin: '20px 0'}}>
+              {countdown > 0 ? (
+                <div style={styles.countdownBox}>
+                  <p style={{fontSize: '0.7rem', opacity: 0.5, marginBottom: '5px'}}>OPTIMIZING AUDIO...</p>
+                  <h1 style={{fontSize: '3rem', color: '#E50914', margin: 0}}>{countdown}</h1>
+                </div>
+              ) : (
+                <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
+              )}
+            </div>
+            <p style={{fontSize: '0.6rem', opacity: 0.3}}>Ensuring high-speed playback available</p>
           </div>
         )}
 
@@ -174,7 +224,7 @@ export default function App() {
               <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                 <a href={`https://music.apple.com/search?term=${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
-                <a href={`https://spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
+                <a href={`https://open.spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
               </div>
             </div>
             <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px', fontSize: '1.1rem'}} onClick={() => setView('share')}>
@@ -199,7 +249,7 @@ export default function App() {
             <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => setView('ranking')}>SEE YOUR GLOBAL RANKING</button>
             <div style={{display: 'flex', gap: '10px', marginTop: '15px'}}>
                 <button style={{...styles.playBtn, flex: 1, background: '#222'}} onClick={handleHomeReturn}>HOME</button>
-                <button style={{...styles.playBtn, flex: 1, background: '#1da1f2'}} onClick={() => {navigator.clipboard.writeText(`I scored ${score}/10!`); alert("Copied!");}}>SHARE</button>
+                <button style={{...styles.playBtn, flex: 1, background: '#1da1f2'}} onClick={() => {navigator.clipboard.writeText(`I scored ${score}/10 on ${selectedArtist}!`); alert("Copied!");}}>SHARE</button>
             </div>
           </div>
         )}
@@ -236,7 +286,7 @@ const styles = {
   userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
   heroText: { fontSize: '2rem', marginBottom: '20px' },
   searchContainer: { marginBottom: '25px' },
-  searchInput: { width: '100%', padding: '15px', background: '#111', border: '1px solid #222', borderRadius: '12px', color: 'white', fontSize: '1rem' },
+  searchInput: { width: '100%', padding: '15px', background: '#111', border: '1px solid #222', borderRadius: '12px', color: 'white', fontSize: '1rem', outline: 'none' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
   artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
@@ -260,5 +310,6 @@ const styles = {
   instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' },
   legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
   legalHeading: { fontSize: '0.7rem', textTransform: 'uppercase', color: '#E50914', marginBottom: '5px' },
-  legalBody: { fontSize: '0.6rem', marginBottom: '15px', opacity: 0.5, lineHeight: '1.4' }
+  legalBody: { fontSize: '0.6rem', marginBottom: '15px', opacity: 0.5, lineHeight: '1.4' },
+  countdownBox: { padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid #222' }
 };
