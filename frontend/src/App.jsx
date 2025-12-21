@@ -46,26 +46,6 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // --- ROTATING ARTISTS ---
-  const [artistWindowIndex, setArtistWindowIndex] = useState(0);
-  const ARTISTS_PER_VIEW = 6;
-
-  // Smooth fade effect
-  const [fade, setFade] = useState(true);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (artists.length > 0) {
-        setFade(false);
-        setTimeout(() => {
-          setArtistWindowIndex(prev => (prev + ARTISTS_PER_VIEW) % artists.length);
-          setFade(true);
-        }, 500); // fade-out duration
-      }
-    }, 5000); // Change every 5 seconds
-    return () => clearInterval(interval);
-  }, [artists]);
-
   // --- 🚀 PRELOAD NEXT 3 ROUNDS ---
   useEffect(() => {
     if ((view === 'game' || view === 'ready') && allRounds.length > 0) {
@@ -98,7 +78,6 @@ export default function App() {
         fetchTopArtists();
       }
     }, 500); 
-
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
@@ -199,19 +178,13 @@ export default function App() {
               {isFetchingArtists && <div style={styles.loaderLine}></div>}
             </div>
 
-            {/* --- Animated Artist Grid --- */}
-            <div style={{...styles.artistGrid, opacity: fade ? 1 : 0, transition: 'opacity 0.5s'}}>
-              {artists.length > 0 ? 
-                artists
-                  .slice(artistWindowIndex, artistWindowIndex + ARTISTS_PER_VIEW)
-                  .map(a => (
-                    <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                      <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                      <p style={styles.artistName}>{a.name}</p>
-                    </div>
-                  ))
-              : !isFetchingArtists && <p style={{gridColumn: '1/-1', textAlign: 'center', opacity: 0.3}}>No artists found.</p>
-              }
+            <div style={styles.artistGrid}>
+              {artists.length > 0 ? artists.map(a => (
+                <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
+                  <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
+                  <p style={styles.artistName}>{a.name}</p>
+                </div>
+              )) : !isFetchingArtists && <p style={{gridColumn: '1/-1', textAlign: 'center', opacity: 0.3}}>No artists found.</p>}
             </div>
 
             <div style={styles.legalSection}>
@@ -223,7 +196,91 @@ export default function App() {
           </main>
         )}
 
-        {/* Game, Results, Share, Ranking, Footer remain exactly the same */}
+        {view === 'ready' && (
+          <div style={styles.glassCardResults}>
+            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
+            <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
+            <div style={{margin: '20px 0'}}>
+              {countdown > 0 ? (
+                <div style={styles.countdownBox}>
+                  <p style={{fontSize: '0.7rem', opacity: 0.5, marginBottom: '5px'}}>READYING TRACKS...</p>
+                  <h1 style={{fontSize: '3.5rem', color: '#E50914', margin: 0, fontWeight: '900'}}>{countdown}</h1>
+                </div>
+              ) : (
+                <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
+              )}
+            </div>
+            <p style={{fontSize: '0.6rem', opacity: 0.3}}>Pre-loading audio for lag-free play</p>
+          </div>
+        )}
+
+        {view === 'game' && allRounds[roundIndex] && (
+          <div style={styles.gameCard}>
+            <audio autoPlay src={allRounds[roundIndex].preview} />
+            <div style={styles.progressBar}><div style={{...styles.progressFill, width: `${(roundIndex + 1) * 10}%`}}></div></div>
+            <p style={{opacity: 0.5, marginBottom: '20px'}}>ROUND {roundIndex + 1}/10</p>
+            <div style={styles.choicesGrid}>
+              {allRounds[roundIndex].choices.map(c => (
+                <button key={c.id} style={styles.choiceBtn} onClick={() => handleAnswer(c.id === allRounds[roundIndex].correctId)}>{c.title}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {view === 'results' && (
+          <div style={styles.glassCardResults}>
+            <div style={styles.statusDot}></div>
+            <p style={{letterSpacing: '3px', fontSize: '0.7rem', opacity: 0.5, display: 'inline'}}>GAME ANALYZED</p>
+            <div style={{marginTop: '20px', padding: '25px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '1px solid #222'}}>
+              <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                <a href={`https://music.apple.com/search?term=${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
+                <a href={`https://open.spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
+              </div>
+            </div>
+            <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px'}} onClick={() => setView('share')}>REVEAL SCORE →</button>
+          </div>
+        )}
+
+        {view === 'share' && (
+          <div style={{textAlign: 'center'}}>
+            <div style={styles.shareCard}>
+              <div style={{color: '#E50914', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '6px', marginBottom: '35px'}}>VECTFLIX</div>
+              <img src={selectedArtistImg} style={{width: '130px', height: '130px', borderRadius: '50%', border: '5px solid #E50914', objectFit: 'cover', marginBottom: '20px'}} alt="artist" />
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center'}}>
+                <h2 style={{margin: '0', fontSize: '1.8rem', color: '#fff', fontWeight: '900'}}>{selectedArtist}</h2>
+                <div style={styles.verifiedBadge}>✓</div>
+              </div>
+              <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
+            </div>
+            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => setView('ranking')}>SEE GLOBAL RANKING</button>
+            <button style={{...styles.playBtn, background: '#222', marginTop: '10px'}} onClick={handleHomeReturn}>HOME</button>
+          </div>
+        )}
+
+        {view === 'ranking' && (
+          <div style={styles.glassCardResults}>
+            <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL RANKINGS</h2>
+            <AdSlot id="ranking_ad" />
+            <div style={{textAlign: 'left', marginBottom: '30px'}}>
+              {rankings.map((r, i) => (
+                <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #222'}}>
+                  <span>{i+1}. {r.user}</span>
+                  <span style={{color: '#E50914', fontWeight: 'bold'}}>{r.score}/10</span>
+                </div>
+              ))}
+            </div>
+            <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
+          </div>
+        )}
+
+        {/* ✅ Updated Footer with Static Pages */}
+        <footer style={styles.footer}>
+          <a href="/about.html" style={styles.instaLink}>About</a> | 
+          <a href="/privacy-policy.html" style={styles.instaLink}>Privacy Policy</a> | 
+          <a href="/terms.html" style={styles.instaLink}>Terms</a> | 
+          <a href="/affiliate-disclosure.html" style={styles.instaLink}>Affiliate Disclosure</a>
+        </footer>
       </div>
     </div>
   );
@@ -237,20 +294,33 @@ const styles = {
   userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
   heroText: { fontSize: '2rem', marginBottom: '20px', fontWeight: '900' },
   searchContainer: { marginBottom: '25px', position: 'relative' },
-  searchInput: { width: '100%', padding: '18px', background: '#111', border: '1px solid #333', borderRadius: '15px', color: 'white', fontSize: '1rem', outline: 'none' },
-  loaderLine: { position: 'absolute', bottom: '0', left: '0', height: '2px', width: '100%', background: '#E50914', animation: 'loader 1s infinite' },
-  artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '30px' },
-  artistCard: { cursor: 'pointer', textAlign: 'center', transition: 'transform 0.3s, box-shadow 0.3s', borderRadius: '15px', overflow: 'hidden', border: '1px solid #222', background: 'rgba(255,255,255,0.02)', boxShadow: '0 4px 8px rgba(0,0,0,0.3)' },
-  artistCardHover: { transform: 'scale(1.05)', boxShadow: '0 8px 16px rgba(0,0,0,0.5)' },
-  artistImg: { width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '15px' },
-  artistName: { fontSize: '0.7rem', margin: '5px 0', fontWeight: '600' },
-  legalSection: { marginTop: '30px', fontSize: '0.6rem', lineHeight: '1.4rem', opacity: 0.7 },
-  legalHeading: { fontWeight: '700', marginBottom: '5px' },
-  legalBody: { marginBottom: '15px' },
-  loginOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 999 },
-  glassCardResults: { background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '25px', border: '1px solid #222', textAlign: 'center', color: '#fff' },
-  loginInput: { width: '70%', padding: '12px', borderRadius: '15px', border: 'none', marginBottom: '15px', outline: 'none', fontSize: '0.9rem' },
-  playBtn: { padding: '12px 25px', background: '#E50914', color: 'white', border: 'none', borderRadius: '25px', cursor: 'pointer', fontWeight: 'bold' },
-  adSlot: { margin: '20px 0', textAlign: 'center' },
-  adPlaceholder: { width: '100%', minHeight: '60px' }
+  searchInput: { width: '100%', padding: '18px', background: '#111', border: '1px solid #333', borderRadius: '15px', color: 'white', fontSize: '1rem', outline: 'none', boxSizing: 'border-box' },
+  loaderLine: { height: '2px', background: '#E50914', width: '30%', position: 'absolute', bottom: '0', borderRadius: '2px' },
+  artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
+  artistCard: { textAlign: 'center', cursor: 'pointer' },
+  artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
+  artistName: { fontSize: '0.7rem', marginTop: '5px', fontWeight: 'bold' },
+  gameCard: { background: '#111', padding: '40px 20px', borderRadius: '30px', textAlign: 'center' },
+  progressBar: { width: '100%', height: '4px', background: '#222', borderRadius: '2px', marginBottom: '10px' },
+  progressFill: { height: '100%', background: '#E50914', transition: '0.4s' },
+  choicesGrid: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '12px', textAlign: 'left', fontWeight: 'bold', cursor: 'pointer' },
+  glassCardResults: { background: '#111', padding: '40px 20px', borderRadius: '35px', textAlign: 'center' },
+  statusDot: { width: '8px', height: '8px', background: '#E50914', borderRadius: '50%', display: 'inline-block', marginRight: '8px' },
+  linkButtonWhite: { textDecoration:'none', background:'#fff', color:'#000', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
+  linkButtonGreen: { textDecoration:'none', background:'#1DB954', color:'#fff', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
+  resultsArtistImg: { width: '80px', height: '80px', borderRadius: '50%', marginBottom: '10px', objectFit: 'cover' },
+  playBtn: { width: '100%', padding: '16px', background: '#E50914', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
+  shareCard: { background: '#0a0a0a', padding: '60px 20px', borderRadius: '45px', border: '4px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  verifiedBadge: { background: '#1da1f2', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: 'white' },
+  adSlot: { margin: '30px 0', textAlign: 'center' },
+  adPlaceholder: { minHeight: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px' },
+  loginOverlay: { position: 'fixed', inset: 0, background: '#000', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
+  loginInput: { width: '100%', padding: '18px', background: '#222', border: '1px solid #E50914', borderRadius: '10px', color: 'white', textAlign: 'center', margin: '20px 0' },
+  footer: { textAlign: 'center', marginTop: '40px', paddingBottom: '20px' },
+  instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem', margin: '0 5px' },
+  legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px' },
+  legalHeading: { fontSize: '0.7rem', textTransform: 'uppercase', color: '#E50914', marginBottom: '5px' },
+  legalBody: { fontSize: '0.6rem', marginBottom: '15px', opacity: 0.5 },
+  countdownBox: { padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '2px solid #E50914' }
 };
