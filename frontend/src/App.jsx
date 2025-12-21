@@ -72,14 +72,12 @@ export default function App() {
   // --- 🌍 UPDATED GLOBAL ARTIST SEARCH LOGIC ---
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      // Only search if user types more than 1 character
       if (searchTerm.trim().length > 1) {
         searchGlobalArtists(searchTerm);
       } else if (searchTerm.trim().length === 0) {
         fetchTopArtists();
       }
     }, 500); 
-
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
@@ -88,7 +86,6 @@ export default function App() {
     try {
       const res = await fetch(`${API_URL}/api/artists`);
       const data = await res.json();
-      // Ensure we only store valid artist objects
       setArtists(data.filter(a => a.name && a.picture_medium));
     } catch (e) { console.error("Server warming up..."); }
     setIsFetchingArtists(false);
@@ -97,15 +94,11 @@ export default function App() {
   const searchGlobalArtists = async (query) => {
     setIsFetchingArtists(true);
     try {
-      // Note: Endpoint explicitly targets /api/search/artists as per your peak server.js
       const res = await fetch(`${API_URL}/api/search/artists?q=${encodeURIComponent(query)}`);
       const data = await res.json();
-      
-      // STRICT FILTER: Only items that are type "artist" and have a valid image
       const filteredArtists = data.filter(item => 
         (item.type === 'artist' || !item.type) && item.name && item.picture_medium
       );
-      
       setArtists(filteredArtists);
     } catch (e) { console.error("Search failed"); }
     setIsFetchingArtists(false);
@@ -281,8 +274,12 @@ export default function App() {
           </div>
         )}
 
+        {/* ✅ Updated Footer with Static Pages */}
         <footer style={styles.footer}>
-          <a href="https://instagram.com/vecteezy_1" target="_blank" rel="noreferrer" style={styles.instaLink}>Created by @vecteezy_1</a>
+          <a href="/about.html" style={styles.instaLink}>About</a> | 
+          <a href="/privacy-policy.html" style={styles.instaLink}>Privacy Policy</a> | 
+          <a href="/terms.html" style={styles.instaLink}>Terms</a> | 
+          <a href="/affiliate-disclosure.html" style={styles.instaLink}>Affiliate Disclosure</a>
         </footer>
       </div>
     </div>
@@ -321,7 +318,7 @@ const styles = {
   loginOverlay: { position: 'fixed', inset: 0, background: '#000', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
   loginInput: { width: '100%', padding: '18px', background: '#222', border: '1px solid #E50914', borderRadius: '10px', color: 'white', textAlign: 'center', margin: '20px 0' },
   footer: { textAlign: 'center', marginTop: '40px', paddingBottom: '20px' },
-  instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' },
+  instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem', margin: '0 5px' },
   legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px' },
   legalHeading: { fontSize: '0.7rem', textTransform: 'uppercase', color: '#E50914', marginBottom: '5px' },
   legalBody: { fontSize: '0.6rem', marginBottom: '15px', opacity: 0.5 },
