@@ -31,14 +31,13 @@ const AdSlot = ({ id }) => {
 
 export default function App() {
   const [view, setView] = useState('home'); 
-  const [loading, setLoading] = useState(false);
-  const [isFetchingArtists, setIsFetchingArtists] = useState(true);
+  const [isFetchingArtists, setIsFetchingArtists] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
   const [allRounds, setAllRounds] = useState([]);
   const [roundIndex, setRoundIndex] = useState(0);
   const [score, setScore] = useState(0);
-  const [countdown, setCountdown] = useState(0); // For the 5s Mandatory wait
+  const [countdown, setCountdown] = useState(0);
   
   const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('v_name') || '');
   const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('v_img') || '');
@@ -47,9 +46,9 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // --- 🚀 ULTRA-SPEED: PRELOAD 3 ROUNDS AHEAD ---
+  // --- 🚀 PRELOAD NEXT 3 ROUNDS ---
   useEffect(() => {
-    if (view === 'game' || view === 'ready' && allRounds.length > 0) {
+    if ((view === 'game' || view === 'ready') && allRounds.length > 0) {
       for (let i = 0; i <= 3; i++) {
         const targetRound = allRounds[roundIndex + i];
         if (targetRound && targetRound.preview) {
@@ -61,7 +60,7 @@ export default function App() {
     }
   }, [view, roundIndex, allRounds]);
 
-  // --- ⏱️ MANDATORY COUNTDOWN LOGIC ---
+  // --- ⏱️ MANDATORY 5s COUNTDOWN ---
   useEffect(() => {
     let timer;
     if (view === 'ready' && countdown > 0) {
@@ -70,34 +69,42 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [view, countdown]);
 
-  const filteredArtists = artists.filter(a => 
-    a.name && a.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // --- 🌍 GLOBAL ARTIST SEARCH LOGIC ---
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchTerm.trim()) {
+        searchGlobalArtists(searchTerm);
+      } else {
+        fetchTopArtists();
+      }
+    }, 500); // Wait 500ms after user stops typing to save API calls
 
-  const rankings = [
-    { user: "TopDawg", score: 10, date: "Today" },
-    { user: username || "You", score: score, date: "Just now" },
-    { user: "MusicLvr", score: 9, date: "Yesterday" },
-    { user: "BeatMaster", score: 8, date: "2 days ago" },
-  ];
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
 
-  const fetchArtists = () => {
+  const fetchTopArtists = async () => {
     setIsFetchingArtists(true);
-    fetch(`${API_URL}/api/artists`)
-      .then(res => res.json())
-      .then(data => {
-        setArtists(data);
-        setIsFetchingArtists(false);
-      })
-      .catch(() => setIsFetchingArtists(false));
+    try {
+      const res = await fetch(`${API_URL}/api/artists`);
+      const data = await res.json();
+      setArtists(data);
+    } catch (e) { console.error("Server warming up..."); }
+    setIsFetchingArtists(false);
   };
 
-  useEffect(() => {
-    fetchArtists();
-  }, []);
+  const searchGlobalArtists = async (query) => {
+    setIsFetchingArtists(true);
+    try {
+      // Calls your server which proxies to Deezer Search
+      const res = await fetch(`${API_URL}/api/search/artists?q=${query}`);
+      const data = await res.json();
+      setArtists(data);
+    } catch (e) { console.error("Search failed"); }
+    setIsFetchingArtists(false);
+  };
 
   const startGameSetup = async (a) => {
-    setLoading(true);
+    setIsFetchingArtists(true);
     setSelectedArtist(a.name);
     setSelectedArtistImg(a.picture_medium);
     sessionStorage.setItem('v_name', a.name);
@@ -109,9 +116,9 @@ export default function App() {
       setScore(0);
       setRoundIndex(0);
       setView('ready');
-      setCountdown(5); // Start the mandatory 5s check
-    } catch (err) { alert("Server warming up! Try again in 5 seconds."); }
-    setLoading(false);
+      setCountdown(5); 
+    } catch (err) { alert("Artist not available for quiz. Try another!"); }
+    setIsFetchingArtists(false);
   }
 
   const handleAnswer = (wasCorrect) => {
@@ -128,6 +135,12 @@ export default function App() {
     setView('home');
     setSearchTerm('');
   };
+
+  const rankings = [
+    { user: "TopDawg", score: 10, date: "Today" },
+    { user: username || "You", score: score, date: "Just now" },
+    { user: "MusicLvr", score: 9, date: "Yesterday" }
+  ];
 
   return (
     <div style={styles.appWrapper}>
@@ -153,25 +166,23 @@ export default function App() {
             <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
             
             <div style={styles.searchContainer}>
-              <input type="text" placeholder="Search artists..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
+              <input 
+                type="text" 
+                placeholder="Search any artist globally..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                style={styles.searchInput} 
+              />
+              {isFetchingArtists && <p style={{fontSize: '0.6rem', color: '#E50914', marginTop: '5px'}}>Searching database...</p>}
             </div>
 
             <div style={styles.artistGrid}>
-              {isFetchingArtists ? (
-                <div style={{gridColumn: '1/-1', textAlign: 'center'}}>
-                    <p style={{opacity: 0.5}}>Waking up server...</p>
-                    <button onClick={fetchArtists} style={{background:'none', border:'none', color:'#E50914', cursor:'pointer', fontSize:'0.8rem'}}>RETRY</button>
+              {artists.map(a => (
+                <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
+                  <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
+                  <p style={styles.artistName}>{a.name}</p>
                 </div>
-              ) : filteredArtists.length > 0 ? (
-                filteredArtists.map(a => (
-                  <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                    <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                    <p style={styles.artistName}>{a.name}</p>
-                  </div>
-                ))
-              ) : (
-                <p style={{gridColumn: '1/-1', textAlign: 'center', opacity: 0.5}}>No artists found for "{searchTerm}"</p>
-              )}
+              ))}
             </div>
 
             <div style={styles.legalSection}>
@@ -187,18 +198,17 @@ export default function App() {
           <div style={styles.glassCardResults}>
             <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
             <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
-            
             <div style={{margin: '20px 0'}}>
               {countdown > 0 ? (
                 <div style={styles.countdownBox}>
-                  <p style={{fontSize: '0.7rem', opacity: 0.5, marginBottom: '5px'}}>OPTIMIZING AUDIO...</p>
-                  <h1 style={{fontSize: '3rem', color: '#E50914', margin: 0}}>{countdown}</h1>
+                  <p style={{fontSize: '0.7rem', opacity: 0.5, marginBottom: '5px'}}>READYING TRACKS...</p>
+                  <h1 style={{fontSize: '3.5rem', color: '#E50914', margin: 0, fontWeight: '900'}}>{countdown}</h1>
                 </div>
               ) : (
                 <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
               )}
             </div>
-            <p style={{fontSize: '0.6rem', opacity: 0.3}}>Ensuring high-speed playback available</p>
+            <p style={{fontSize: '0.6rem', opacity: 0.3}}>Pre-loading audio for lag-free play</p>
           </div>
         )}
 
@@ -216,20 +226,16 @@ export default function App() {
 
         {view === 'results' && (
           <div style={styles.glassCardResults}>
-            <div style={{marginBottom: '20px'}}>
-                <div style={styles.statusDot}></div>
-                <p style={{letterSpacing: '3px', fontSize: '0.7rem', opacity: 0.5, display: 'inline'}}>GAME ANALYZED</p>
-            </div>
-            <div style={{marginTop: '10px', padding: '25px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '1px solid #222'}}>
+            <div style={styles.statusDot}></div>
+            <p style={{letterSpacing: '3px', fontSize: '0.7rem', opacity: 0.5, display: 'inline'}}>GAME ANALYZED</p>
+            <div style={{marginTop: '20px', padding: '25px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '1px solid #222'}}>
               <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                 <a href={`https://music.apple.com/search?term=${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
                 <a href={`https://open.spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
               </div>
             </div>
-            <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px', fontSize: '1.1rem'}} onClick={() => setView('share')}>
-                REVEAL MY SCORE →
-            </button>
+            <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px'}} onClick={() => setView('share')}>REVEAL SCORE →</button>
           </div>
         )}
 
@@ -239,18 +245,13 @@ export default function App() {
               <div style={{color: '#E50914', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '6px', marginBottom: '35px'}}>VECTFLIX</div>
               <img src={selectedArtistImg} style={{width: '130px', height: '130px', borderRadius: '50%', border: '5px solid #E50914', objectFit: 'cover', marginBottom: '20px'}} alt="artist" />
               <div style={{display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center'}}>
-                <h2 style={{margin: '0', fontSize: '1.8rem', color: '#fff', fontWeight: '900', textTransform: 'uppercase'}}>{selectedArtist}</h2>
+                <h2 style={{margin: '0', fontSize: '1.8rem', color: '#fff', fontWeight: '900'}}>{selectedArtist}</h2>
                 <div style={styles.verifiedBadge}>✓</div>
               </div>
-              <p style={{fontSize: '0.7rem', color: '#E50914', fontWeight: 'bold', letterSpacing: '2px', marginTop: '5px'}}>OFFICIAL FAN SCORE</p>
-              <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0', lineHeight: '0.8'}}>{score}/10</div>
-              <div style={{opacity: 0.3, fontSize: '0.6rem', marginTop: '25px', borderTop: '1px solid #222', paddingTop: '15px', width: '80%'}}>musicquiz.vercel.app</div>
+              <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
             </div>
-            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => setView('ranking')}>SEE YOUR GLOBAL RANKING</button>
-            <div style={{display: 'flex', gap: '10px', marginTop: '15px'}}>
-                <button style={{...styles.playBtn, flex: 1, background: '#222'}} onClick={handleHomeReturn}>HOME</button>
-                <button style={{...styles.playBtn, flex: 1, background: '#1da1f2'}} onClick={() => {navigator.clipboard.writeText(`I scored ${score}/10 on ${selectedArtist}!`); alert("Copied!");}}>SHARE</button>
-            </div>
+            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => setView('ranking')}>SEE GLOBAL RANKING</button>
+            <button style={{...styles.playBtn, background: '#222', marginTop: '10px'}} onClick={handleHomeReturn}>HOME</button>
           </div>
         )}
 
@@ -284,9 +285,9 @@ const styles = {
   header: { padding: '20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' },
   logo: { color: '#E50914', fontSize: '1.5rem', fontWeight: 'bold' },
   userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
-  heroText: { fontSize: '2rem', marginBottom: '20px' },
+  heroText: { fontSize: '2rem', marginBottom: '20px', fontWeight: '900' },
   searchContainer: { marginBottom: '25px' },
-  searchInput: { width: '100%', padding: '15px', background: '#111', border: '1px solid #222', borderRadius: '12px', color: 'white', fontSize: '1rem', outline: 'none' },
+  searchInput: { width: '100%', padding: '15px', background: '#111', border: '1px solid #333', borderRadius: '12px', color: 'white', fontSize: '1rem', outline: 'none' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
   artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
@@ -299,17 +300,17 @@ const styles = {
   linkButtonWhite: { textDecoration:'none', background:'#fff', color:'#000', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
   linkButtonGreen: { textDecoration:'none', background:'#1DB954', color:'#fff', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
   resultsArtistImg: { width: '80px', borderRadius: '50%', marginBottom: '10px' },
-  playBtn: { width: '100%', padding: '16px', background: '#E50914', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold' },
+  playBtn: { width: '100%', padding: '16px', background: '#E50914', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
   shareCard: { background: '#0a0a0a', padding: '60px 20px', borderRadius: '45px', border: '4px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  verifiedBadge: { background: '#1da1f2', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: 'white' },
+  verifiedBadge: { background: '#1da1f2', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: 'white' },
   adSlot: { margin: '30px 0', textAlign: 'center' },
   adPlaceholder: { minHeight: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px' },
   loginOverlay: { position: 'fixed', inset: 0, background: '#000', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
   loginInput: { width: '100%', padding: '15px', background: '#222', border: 'none', borderRadius: '10px', color: 'white', textAlign: 'center', margin: '20px 0' },
   footer: { textAlign: 'center', marginTop: '40px', paddingBottom: '20px' },
   instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' },
-  legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
+  legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px' },
   legalHeading: { fontSize: '0.7rem', textTransform: 'uppercase', color: '#E50914', marginBottom: '5px' },
-  legalBody: { fontSize: '0.6rem', marginBottom: '15px', opacity: 0.5, lineHeight: '1.4' },
-  countdownBox: { padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid #222' }
+  legalBody: { fontSize: '0.6rem', marginBottom: '15px', opacity: 0.5 },
+  countdownBox: { padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '2px solid #E50914' }
 };
