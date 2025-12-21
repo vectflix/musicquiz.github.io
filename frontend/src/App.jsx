@@ -245,52 +245,45 @@ export default function App() {
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              boxShadow: '0 10px 30px rgba(229, 9, 20, 0.2)'
+              boxShadow: '0 10px 40px rgba(229, 9, 20, 0.3)'
             }}>
-              <div style={{color: '#E50914', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '5px', marginBottom: '25px'}}>VECTFLIX</div>
+              {/* TOP LOGO */}
+              <div style={{color: '#E50914', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '6px', marginBottom: '30px'}}>VECTFLIX</div>
               
-              {/* IMAGE & BADGE AREA */}
-              <div style={{position: 'relative', width: '150px', height: '150px', marginBottom: '20px'}}>
+              {/* ARTIST PROFILE ROW - Layout Change here */}
+              <div style={{display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '25px', width: '100%', justifyContent: 'center'}}>
                 <img 
-                  src={selectedArtistImg || "https://via.placeholder.com/150"} 
-                  style={{width: '100%', height: '100%', borderRadius: '50%', border: '4px solid #E50914', objectFit: 'cover'}} 
+                  src={selectedArtistImg || sessionStorage.getItem('v_img')} 
+                  style={{width: '70px', height: '70px', borderRadius: '50%', border: '2px solid #E50914', objectFit: 'cover'}} 
                   alt="artist" 
                 />
-                <div style={{
-                  position: 'absolute', 
-                  bottom: '5px', 
-                  right: '5px', 
-                  background: '#1da1f2', 
-                  width: '35px', 
-                  height: '35px', 
-                  borderRadius: '50%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontSize: '18px', 
-                  border: '3px solid #0a0a0a',
-                  color: 'white',
-                  zIndex: 10
-                }}>✓</div>
+                <div style={{textAlign: 'left'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                        <h2 style={{margin: '0', fontSize: '1.2rem', color: '#fff', fontWeight: '800', textTransform: 'uppercase'}}>
+                            {selectedArtist || sessionStorage.getItem('v_name')}
+                        </h2>
+                        <div style={{background: '#1da1f2', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'white', fontWeight: 'bold'}}>✓</div>
+                    </div>
+                    <div style={{fontSize: '0.6rem', color: '#E50914', fontWeight: 'bold', letterSpacing: '1px'}}>VERIFIED ARTIST</div>
+                </div>
               </div>
               
-              {/* TEXT AREA */}
-              <h2 style={{margin: '0', fontSize: '1.8rem', color: '#fff', fontWeight: '800', textTransform: 'uppercase'}}>
-                {selectedArtist || "TOP ARTIST"}
-              </h2>
-              <div style={{fontSize: '0.7rem', color: '#E50914', fontWeight: 'bold', marginTop: '5px', letterSpacing: '2px'}}>VERIFIED ARTIST</div>
-              
-              <div style={{fontSize: '5.5rem', fontWeight: '900', color: '#E50914', lineHeight: '1', margin: '20px 0'}}>
-                {score}/10
+              {/* BIG SCORE */}
+              <div style={{background: 'rgba(255,255,255,0.03)', width: '100%', padding: '20px 0', borderRadius: '20px', border: '1px solid #222'}}>
+                <div style={{fontSize: '0.7rem', opacity: 0.5, marginBottom: '5px'}}>ACCURACY SCORE</div>
+                <div style={{fontSize: '5.5rem', fontWeight: '900', color: '#E50914', lineHeight: '1'}}>
+                    {score}/10
+                </div>
               </div>
               
-              <div style={{opacity: 0.5, fontSize: '0.7rem', marginTop: '20px', borderTop: '1px solid #222', paddingTop: '15px', width: '80%'}}>
+              {/* WATERMARK */}
+              <div style={{opacity: 0.4, fontSize: '0.6rem', marginTop: '30px', borderTop: '1px solid #222', paddingTop: '15px', width: '90%'}}>
                 musicquiz-github-io.vercel.app
               </div>
             </div>
             
             <p style={{fontSize: '0.8rem', margin: '20px 0', color: '#aaa'}}>Screenshot & tag **@vecteezy_1**</p>
-            <button style={{...styles.playBtn, background: '#222', marginBottom: '10px'}} onClick={copyToClipboard}>📋 COPY LINK</button>
+            <button style={{...styles.playBtn, background: '#222', marginBottom: '10px'}} onClick={copyToClipboard}>📋 COPY TEXT LINK</button>
             <button style={styles.playBtn} onClick={() => setView('results')}>← BACK</button>
           </div>
         )}
