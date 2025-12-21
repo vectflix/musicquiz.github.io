@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // --- CONFIGURATION ---
 const API_URL = "https://music-guessing-api-v3.onrender.com"; 
 
 const LEGAL_TEXT = {
-  about: "VECTFLIX is a premium high-speed music guessing game. Using the Deezer API, we provide 30-second song previews to test your knowledge of your favorite artists. Created by @vecteezy_1.",
-  privacy: "Privacy Policy: VECTFLIX uses local storage for high scores. We do not store personal identification data.",
-  cookies: "Cookies Policy: We use cookies to analyze site traffic and for ads. Third-party partners like Google AdSense use cookies to serve personalized ads based on your visits to this and other websites. You can manage your cookie preferences in your browser settings."
+  about: "VECTFLIX is a premium high-speed music guessing game designed for true audiophiles. Using the official Deezer API, we provide high-quality 30-second song previews to test your knowledge of your favorite artists in real-time. Created by @vecteezy_1.",
+  howToPlay: "How to Play: Select your favorite artist to start a 10-round session. You have 10 seconds to identify the song title from the choices provided. Speed and accuracy are key to hitting a new high score!",
+  privacy: "Privacy Policy: VECTFLIX uses local storage to save your high scores locally on your device. We do not store or collect personal identification data.",
+  cookies: "Cookies Policy: We use cookies to analyze site traffic and for advertising purposes. Third-party partners like Google AdSense use cookies to serve personalized ads based on your visits to this and other websites."
 };
 
-// --- 💰 UPDATED AD COMPONENT ---
-const AdSlot = () => {
+// --- 💰 PEAK AD COMPONENT (Reusable) ---
+const AdSlot = ({ id = "default" }) => {
   useEffect(() => {
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
   }, []);
@@ -21,7 +22,7 @@ const AdSlot = () => {
         <ins className="adsbygoogle" 
              style={{ display: 'block' }} 
              data-ad-client="ca-pub-6249624506404198" 
-             data-ad-slot="default" 
+             data-ad-slot={id} 
              data-ad-format="auto" 
              data-full-width-responsive="true"></ins>
       </div>
@@ -125,9 +126,11 @@ export default function App() {
               </div>
             )}
             
-            <AdSlot />
+            <AdSlot id="home-slot" />
 
             <div style={styles.legalSection}>
+              <h4 style={styles.legalHeading}>How to Play</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.howToPlay}</p>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
               <h4 style={styles.legalHeading}>Privacy & Cookies</h4>
@@ -151,18 +154,21 @@ export default function App() {
         )}
 
         {view === 'results' && (
-          <div style={styles.glassCardResults}>
-            {newBest && <div style={styles.newBestTag}>NEW RECORD!</div>}
-            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
-            <h2 style={{margin: '5px 0'}}>{selectedArtist}</h2>
-            <div style={styles.scoreBox}>
-              <span style={styles.finalScore}>{score}</span>
-              <span style={{fontSize: '1.2rem', opacity: 0.4}}>/10</span>
+          <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
+            <div style={styles.glassCardResults}>
+              {newBest && <div style={styles.newBestTag}>NEW RECORD!</div>}
+              <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
+              <h2 style={{margin: '5px 0'}}>{selectedArtist}</h2>
+              <div style={styles.scoreBox}>
+                <span style={styles.finalScore}>{score}</span>
+                <span style={{fontSize: '1.2rem', opacity: 0.4}}>/10</span>
+              </div>
+              <div style={styles.buttonGroup}>
+                 <button style={styles.shareBtn} onClick={() => { navigator.clipboard.writeText(`I got ${score}/10 on VECTFLIX!`); setCopied(true); setTimeout(()=>setCopied(false),2000); }}>{copied ? "COPIED!" : "SHARE"}</button>
+                 <button style={styles.playBtn} onClick={() => window.location.reload()}>RETRY</button>
+              </div>
             </div>
-            <div style={styles.buttonGroup}>
-               <button style={styles.shareBtn} onClick={() => { navigator.clipboard.writeText(`I got ${score}/10 on VECTFLIX!`); setCopied(true); setTimeout(()=>setCopied(false),2000); }}>{copied ? "COPIED!" : "SHARE"}</button>
-               <button style={styles.playBtn} onClick={() => window.location.reload()}>RETRY</button>
-            </div>
+            <AdSlot id="results-slot" />
           </div>
         )}
 
@@ -239,9 +245,9 @@ const styles = {
   loader: { textAlign: 'center', color: '#E50914', marginTop: '50px', fontWeight: 'bold' },
   footer: { textAlign: 'center', marginTop: '50px' },
   instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' },
-  adSlot: { margin: '40px 0', textAlign: 'center' },
+  adSlot: { margin: '20px 0', textAlign: 'center' },
   adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', border: '1px dashed #333', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
-  legalHeading: { color: '#E50914', fontSize: '0.8rem', margin: '5px 0' },
+  legalHeading: { color: '#E50914', fontSize: '0.8rem', margin: '5px 0', textTransform: 'uppercase', fontWeight: 'bold' },
   legalBody: { fontSize: '0.6rem', color: '#666', lineHeight: '1.4', marginBottom: '10px' }
 };
