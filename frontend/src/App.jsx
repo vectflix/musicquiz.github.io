@@ -31,7 +31,6 @@ const AdSlot = ({ id }) => {
 };
 
 export default function App() {
-  // --- STATES ---
   const [view, setView] = useState('home'); 
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,22 +41,21 @@ export default function App() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [selectedArtist, setSelectedArtist] = useState('');
   const [selectedArtistImg, setSelectedArtistImg] = useState('');
+  const [countdown, setCountdown] = useState(null); // NEW: Countdown State
   
-  // --- LOGIN ---
   const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // --- 🚀 NO-LAG BUFFER ---
+  // Buffer next audio
   useEffect(() => {
-    if ((view === 'game' || view === 'ready') && allRounds[roundIndex + 1]) {
+    if ((view === 'game' || view === 'ready') && allRounds[roundIndex]) {
       const audio = new Audio();
-      audio.src = allRounds[roundIndex + 1].preview;
+      audio.src = allRounds[roundIndex].preview;
       audio.preload = "auto";
     }
   }, [roundIndex, view, allRounds]);
 
-  // Load Trending on Mount
   useEffect(() => {
     fetch(`${API_URL}/api/artists`).then(res => res.json()).then(setArtists);
   }, []);
@@ -93,9 +91,25 @@ export default function App() {
       setAllRounds(data);
       setScore(0);
       setRoundIndex(0);
-      setView('ready'); // SHOWS START BUTTON SCREEN
+      setCountdown(null);
+      setView('ready');
     } catch (err) { alert("Server warming up!"); }
     setLoading(false);
+  };
+
+  // --- NEW: Countdown Trigger ---
+  const triggerCountdown = () => {
+    setCountdown(3);
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setView('game');
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const updateLeaderboard = async (finalScore) => {
@@ -125,7 +139,6 @@ export default function App() {
     <div style={styles.appWrapper}>
       <div style={styles.container}>
         
-        {/* LOGIN SCREEN */}
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={styles.glassCardResults}>
@@ -176,13 +189,19 @@ export default function App() {
           </main>
         )}
 
-        {/* READY SCREEN WITH START BUTTON */}
         {view === 'ready' && (
           <div style={styles.glassCardResults}>
             <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
             <h2 style={{margin: '10px 0', fontSize: '1.8rem'}}>{selectedArtist}</h2>
-            <p style={{opacity: 0.5, marginBottom: '25px'}}>10 Rounds Ready</p>
-            <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
+            <p style={{opacity: 0.5, marginBottom: '25px'}}>{countdown ? "GET READY..." : "10 Rounds Ready"}</p>
+            
+            <button 
+              style={{...styles.playBtn, background: countdown ? '#555' : '#E50914'}} 
+              onClick={triggerCountdown}
+              disabled={countdown !== null}
+            >
+              {countdown ? countdown : "START GAME"}
+            </button>
           </div>
         )}
 
