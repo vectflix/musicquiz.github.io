@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 const API_URL = "https://music-guessing-api-v3.onrender.com"; 
 
 const LEGAL_TEXT = {
-  about: "VECTFLIX is a premium high-speed music guessing game designed for true audiophiles. Using the official Deezer API, we provide high-quality 30-second song previews to test your knowledge of your favorite artists in real-time.",
+  about: "VECTFLIX is a premium high-speed music guessing game designed for true audiophiles. Using the official Deezer API, we provide high-quality 30-second song previews to test your knowledge of your favorite artists in real-time. Created by @vecteezy_1.",
   howToPlay: "Select an artist, listen to the clip, and guess the title. You have 10 rounds to prove your skills!",
   privacy: "Privacy Policy: We store high scores locally. No personal data is collected.",
   cookies: "Cookies Policy: We use cookies for analytics and personalized ads via Google AdSense."
@@ -29,6 +29,7 @@ const AdSlot = ({ id }) => {
 export default function App() {
   const [view, setView] = useState('home'); 
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(''); // RE-ADDED PEAK SEARCH
   const [artists, setArtists] = useState([]);
   const [allRounds, setAllRounds] = useState([]);
   const [roundIndex, setRoundIndex] = useState(0);
@@ -37,12 +38,10 @@ export default function App() {
   const [selectedArtist, setSelectedArtist] = useState('');
   const [selectedArtistImg, setSelectedArtistImg] = useState('');
   
-  // --- LOGIN STATES ---
   const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // --- NO-LAG BUFFER ---
   useEffect(() => {
     if ((view === 'game') && allRounds[roundIndex + 1]) {
       const audio = new Audio();
@@ -54,6 +53,16 @@ export default function App() {
   useEffect(() => {
     fetch(`${API_URL}/api/artists`).then(res => res.json()).then(setArtists);
   }, []);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) return;
+    setLoading(true);
+    const res = await fetch(`${API_URL}/api/search/${searchTerm}`);
+    const data = await res.json();
+    setArtists(data);
+    setLoading(false);
+  };
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -127,16 +136,34 @@ export default function App() {
 
         {view === 'home' && (
           <main>
-            <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
-            <div style={styles.artistGrid}>
-              {artists.map(a => (
-                <div key={a.id} style={styles.artistCard} onClick={() => startGame(a)}>
-                  <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                  <p style={styles.artistName}>{a.name}</p>
-                </div>
-              ))}
+            <div style={styles.heroSection}>
+              <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
+              {/* RE-ADDED SEARCH BAR */}
+              <form onSubmit={handleSearch} style={styles.searchBox}>
+                <input 
+                  style={styles.searchBar} 
+                  placeholder="Search artist..." 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                />
+                <button type="submit" style={styles.searchBtn}>🔍</button>
+              </form>
             </div>
+
+            <h3 style={styles.sectionTitle}>Trending Artists</h3>
+            {loading ? <div style={styles.loader}>🎧 PREPARING...</div> : (
+              <div style={styles.artistGrid}>
+                {artists.map(a => (
+                  <div key={a.id} style={styles.artistCard} onClick={() => startGame(a)}>
+                    <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
+                    <p style={styles.artistName}>{a.name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            
             <AdSlot id="home_banner" />
+
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>How to Play</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.howToPlay}</p>
@@ -167,6 +194,11 @@ export default function App() {
             <AdSlot id="results_banner" />
           </div>
         )}
+
+        {/* IG HANDLE RE-ADDED */}
+        <footer style={styles.footer}>
+          <a href="https://instagram.com/vecteezy_1" style={styles.instaLink}>Created by @vecteezy_1</a>
+        </footer>
       </div>
     </div>
   );
@@ -203,7 +235,12 @@ const styles = {
   header: { padding: '20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   logo: { color: '#E50914', fontSize: '1.5rem', fontWeight: 'bold', cursor: 'pointer' },
   userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
-  heroText: { fontSize: '2rem', marginBottom: '20px' },
+  heroSection: { marginBottom: '30px' },
+  heroText: { fontSize: '2rem', marginBottom: '15px' },
+  searchBox: { display: 'flex', background: '#222', borderRadius: '15px', padding: '5px 10px', alignItems: 'center' },
+  searchBar: { flex: 1, background: 'transparent', border: 'none', color: 'white', padding: '12px', outline: 'none' },
+  searchBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' },
+  sectionTitle: { fontSize: '0.8rem', marginBottom: '15px', opacity: 0.5, textTransform: 'uppercase' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
   artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
@@ -222,5 +259,8 @@ const styles = {
   legalBody: { fontSize: '0.6rem', marginBottom: '10px' },
   adSlot: { margin: '20px 0', minHeight: '100px', background: '#0a0a0a' },
   loginOverlay: { position: 'fixed', top:0, left:0, right:0, bottom:0, background:'#000', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
-  loginInput: { width: '100%', padding: '15px', background: '#222', border: 'none', borderRadius: '10px', color: 'white', textAlign: 'center' }
+  loginInput: { width: '100%', padding: '15px', background: '#222', border: 'none', borderRadius: '10px', color: 'white', textAlign: 'center' },
+  loader: { textAlign: 'center', padding: '20px', color: '#E50914' },
+  footer: { textAlign: 'center', marginTop: '40px' },
+  instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' }
 };
