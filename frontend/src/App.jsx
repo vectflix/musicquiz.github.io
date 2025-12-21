@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// --- CONFIGURATION ---
 const API_URL = "https://music-guessing-api-v3.onrender.com"; 
 
 const LEGAL_TEXT = {
@@ -9,6 +10,7 @@ const LEGAL_TEXT = {
   cookies: "Cookies Policy: We use cookies for analytics and personalized ads via Google AdSense."
 };
 
+// --- 💰 AD COMPONENT ---
 const AdSlot = ({ id }) => {
   useEffect(() => {
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
@@ -16,20 +18,23 @@ const AdSlot = ({ id }) => {
   return (
     <div style={styles.adSlot}>
       <p style={{fontSize: '0.6rem', color: '#444', marginBottom: '8px'}}>ADVERTISEMENT</p>
-      <ins className="adsbygoogle" 
-           style={{ display: 'block' }} 
-           data-ad-client="ca-pub-6249624506404198" 
-           data-ad-slot={id} 
-           data-ad-format="auto" 
-           data-full-width-responsive="true"></ins>
+      <div style={styles.adPlaceholder}>
+        <ins className="adsbygoogle" 
+             style={{ display: 'block' }} 
+             data-ad-client="ca-pub-6249624506404198" 
+             data-ad-slot={id} 
+             data-ad-format="auto" 
+             data-full-width-responsive="true"></ins>
+      </div>
     </div>
   );
 };
 
 export default function App() {
+  // --- STATES ---
   const [view, setView] = useState('home'); 
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); // RE-ADDED PEAK SEARCH
+  const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
   const [allRounds, setAllRounds] = useState([]);
   const [roundIndex, setRoundIndex] = useState(0);
@@ -38,31 +43,24 @@ export default function App() {
   const [selectedArtist, setSelectedArtist] = useState('');
   const [selectedArtistImg, setSelectedArtistImg] = useState('');
   
+  // --- LOGIN ---
   const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
+  // --- 🚀 NO-LAG BUFFER ---
   useEffect(() => {
-    if ((view === 'game') && allRounds[roundIndex + 1]) {
+    if ((view === 'game' || view === 'ready') && allRounds[roundIndex + 1]) {
       const audio = new Audio();
       audio.src = allRounds[roundIndex + 1].preview;
       audio.preload = "auto";
     }
   }, [roundIndex, view, allRounds]);
 
+  // Load Trending on Mount
   useEffect(() => {
     fetch(`${API_URL}/api/artists`).then(res => res.json()).then(setArtists);
   }, []);
-
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) return;
-    setLoading(true);
-    const res = await fetch(`${API_URL}/api/search/${searchTerm}`);
-    const data = await res.json();
-    setArtists(data);
-    setLoading(false);
-  };
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -71,6 +69,33 @@ export default function App() {
       setUsername(tempName);
       setIsLoggedIn(true);
     }
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/search/${searchTerm}`);
+      const data = await res.json();
+      setArtists(data);
+    } catch (err) { console.error("Search failed"); }
+    setLoading(false);
+  };
+
+  const startGameSetup = async (a) => {
+    setLoading(true);
+    setSelectedArtist(a.name);
+    setSelectedArtistImg(a.picture_medium);
+    try {
+      const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
+      const data = await res.json();
+      setAllRounds(data);
+      setScore(0);
+      setRoundIndex(0);
+      setView('ready'); // SHOWS START BUTTON SCREEN
+    } catch (err) { alert("Server warming up!"); }
+    setLoading(false);
   };
 
   const updateLeaderboard = async (finalScore) => {
@@ -96,33 +121,18 @@ export default function App() {
     }
   };
 
-  const startGame = async (a) => {
-    setLoading(true);
-    setSelectedArtist(a.name);
-    setSelectedArtistImg(a.picture_medium);
-    const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
-    const data = await res.json();
-    setAllRounds(data);
-    setScore(0); setRoundIndex(0); setView('game');
-    setLoading(false);
-  };
-
   return (
     <div style={styles.appWrapper}>
       <div style={styles.container}>
+        
+        {/* LOGIN SCREEN */}
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={styles.glassCardResults}>
               <h2 style={{color: '#E50914', marginBottom: '10px'}}>VECTFLIX</h2>
               <p style={{fontSize: '0.9rem', opacity: 0.7}}>Enter username to start</p>
               <form onSubmit={handleLogin} style={{marginTop: '20px'}}>
-                <input 
-                  style={styles.loginInput} 
-                  placeholder="Username..." 
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  maxLength={12}
-                />
+                <input style={styles.loginInput} placeholder="Username..." value={tempName} onChange={(e) => setTempName(e.target.value)} maxLength={12} />
                 <button type="submit" style={styles.playBtn}>ENTER GAME</button>
               </form>
             </div>
@@ -138,39 +148,42 @@ export default function App() {
           <main>
             <div style={styles.heroSection}>
               <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
-              {/* RE-ADDED SEARCH BAR */}
               <form onSubmit={handleSearch} style={styles.searchBox}>
-                <input 
-                  style={styles.searchBar} 
-                  placeholder="Search artist..." 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                />
+                <input style={styles.searchBar} placeholder="Search artist..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 <button type="submit" style={styles.searchBtn}>🔍</button>
               </form>
             </div>
 
-            <h3 style={styles.sectionTitle}>Trending Artists</h3>
-            {loading ? <div style={styles.loader}>🎧 PREPARING...</div> : (
+            <h3 style={styles.sectionTitle}>Trending</h3>
+            {loading ? <div style={styles.loader}>🎧 LOADING...</div> : (
               <div style={styles.artistGrid}>
                 {artists.map(a => (
-                  <div key={a.id} style={styles.artistCard} onClick={() => startGame(a)}>
+                  <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
                     <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
                     <p style={styles.artistName}>{a.name}</p>
                   </div>
                 ))}
               </div>
             )}
-            
             <AdSlot id="home_banner" />
-
+            
             <div style={styles.legalSection}>
-              <h4 style={styles.legalHeading}>How to Play</h4>
-              <p style={styles.legalBody}>{LEGAL_TEXT.howToPlay}</p>
+              <h4 style={styles.legalHeading}>About VECTFLIX</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
               <h4 style={styles.legalHeading}>Privacy & Cookies</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.cookies}</p>
             </div>
           </main>
+        )}
+
+        {/* READY SCREEN WITH START BUTTON */}
+        {view === 'ready' && (
+          <div style={styles.glassCardResults}>
+            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
+            <h2 style={{margin: '10px 0', fontSize: '1.8rem'}}>{selectedArtist}</h2>
+            <p style={{opacity: 0.5, marginBottom: '25px'}}>10 Rounds Ready</p>
+            <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
+          </div>
         )}
 
         {view === 'game' && allRounds[roundIndex] && (
@@ -190,12 +203,11 @@ export default function App() {
                  </div>
                ))}
             </div>
-            <button style={styles.playBtn} onClick={() => setView('home')}>PLAY AGAIN</button>
+            <button style={styles.playBtn} onClick={() => setView('home')}>RETRY</button>
             <AdSlot id="results_banner" />
           </div>
         )}
 
-        {/* IG HANDLE RE-ADDED */}
         <footer style={styles.footer}>
           <a href="https://instagram.com/vecteezy_1" style={styles.instaLink}>Created by @vecteezy_1</a>
         </footer>
@@ -232,35 +244,36 @@ function GameRound({ roundData, roundNum, onAnswer }) {
 const styles = {
   appWrapper: { minHeight: '100vh', background: '#000', color: 'white', fontFamily: 'sans-serif' },
   container: { maxWidth: '400px', margin: '0 auto', padding: '20px' },
-  header: { padding: '20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  logo: { color: '#E50914', fontSize: '1.5rem', fontWeight: 'bold', cursor: 'pointer' },
+  header: { padding: '20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' },
+  logo: { color: '#E50914', fontSize: '1.5rem', fontWeight: 'bold' },
   userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
   heroSection: { marginBottom: '30px' },
   heroText: { fontSize: '2rem', marginBottom: '15px' },
   searchBox: { display: 'flex', background: '#222', borderRadius: '15px', padding: '5px 10px', alignItems: 'center' },
   searchBar: { flex: 1, background: 'transparent', border: 'none', color: 'white', padding: '12px', outline: 'none' },
   searchBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' },
-  sectionTitle: { fontSize: '0.8rem', marginBottom: '15px', opacity: 0.5, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: '0.7rem', opacity: 0.5, textTransform: 'uppercase', marginBottom: '15px' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
   artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
   artistName: { fontSize: '0.7rem', marginTop: '5px' },
   gameCard: { background: '#111', padding: '20px', borderRadius: '20px', textAlign: 'center' },
   choicesGrid: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' },
+  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', textAlign: 'left' },
   glassCardResults: { background: '#111', padding: '30px', borderRadius: '30px', textAlign: 'center' },
   resultsArtistImg: { width: '80px', borderRadius: '50%', marginBottom: '10px' },
   playBtn: { width: '100%', padding: '15px', background: '#E50914', color: 'white', border: 'none', borderRadius: '10px', marginTop: '20px', fontWeight: 'bold', cursor: 'pointer' },
   leaderboardBox: { margin: '20px 0', background: '#000', padding: '15px', borderRadius: '10px', textAlign: 'left' },
   leaderboardTitle: { fontSize: '0.7rem', opacity: 0.5, marginBottom: '10px' },
   leaderboardRow: { display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '5px 0' },
-  legalSection: { marginTop: '40px', opacity: 0.4 },
-  legalHeading: { fontSize: '0.7rem', textTransform: 'uppercase' },
-  legalBody: { fontSize: '0.6rem', marginBottom: '10px' },
-  adSlot: { margin: '20px 0', minHeight: '100px', background: '#0a0a0a' },
+  legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px' },
+  legalHeading: { fontSize: '0.7rem', textTransform: 'uppercase', color: '#E50914' },
+  legalBody: { fontSize: '0.6rem', marginBottom: '10px', opacity: 0.5 },
+  adSlot: { margin: '20px 0', textAlign: 'center' },
+  adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px' },
   loginOverlay: { position: 'fixed', top:0, left:0, right:0, bottom:0, background:'#000', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
-  loginInput: { width: '100%', padding: '15px', background: '#222', border: 'none', borderRadius: '10px', color: 'white', textAlign: 'center' },
-  loader: { textAlign: 'center', padding: '20px', color: '#E50914' },
+  loginInput: { width: '100%', padding: '15px', background: '#222', border: 'none', borderRadius: '10px', color: 'white', textAlign: 'center', outline: 'none' },
+  loader: { textAlign: 'center', color: '#E50914', padding: '20px' },
   footer: { textAlign: 'center', marginTop: '40px' },
   instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' }
 };
