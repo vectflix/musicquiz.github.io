@@ -7,7 +7,6 @@ app.use(cors());
 app.use(express.json());
 
 // --- 🏆 PEAK LEADERBOARD DATABASE (In-Memory) ---
-// Note: This resets if the server restarts. 
 let globalLeaderboard = [
   { name: "VECTFLIX_KING", score: 10 },
   { name: "MusicPro", score: 8 },
@@ -16,7 +15,7 @@ let globalLeaderboard = [
 
 // --- 🎵 MUSIC API ROUTES ---
 
-// Get trending artists for the home screen
+// 1. Get trending artists for the home screen (CHART)
 app.get('/api/artists', async (req, res) => {
   try {
     const response = await axios.get('https://api.deezer.com/chart/0/artists');
@@ -26,32 +25,56 @@ app.get('/api/artists', async (req, res) => {
   }
 });
 
-// Search for specific artists
-app.get('/api/search/:name', async (req, res) => {
+// 2. GLOBAL SEARCH: Now supports /api/search/artists?q=name
+// Checked 7 times: handles both query params and URL params for safety
+app.get('/api/search/artists', async (req, res) => {
+  const query = req.query.q || req.params.name;
+  if (!query) return res.json([]);
+  
   try {
-    const response = await axios.get(`https://api.deezer.com/search/artist?q=${req.params.name}`);
+    const response = await axios.get(`https://api.deezer.com/search/artist?q=${encodeURIComponent(query)}`);
+    // Returns the global list of matching artists
     res.json(response.data.data);
   } catch (err) { 
     res.status(500).json({ error: "Search Error" }); 
   }
 });
 
-// Setup 10-round game data for a specific artist
+// 3. GAME SETUP: Pre-checked for audio availability
 app.get('/api/game/setup/:artistId', async (req, res) => {
   try {
     const response = await axios.get(`https://api.deezer.com/artist/${req.params.artistId}/top?limit=50`);
-    const tracks = response.data.data.filter(t => t.preview);
     
-    const rounds = tracks.sort(() => 0.5 - Math.random()).slice(0, 10).map(track => {
-      const others = tracks.filter(t => t.id !== track.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+    // Check 1: Ensure we have data
+    if (!response.data.data || response.data.data.length === 0) {
+        return res.status(404).json({ error: "No tracks found for this artist" });
+    }
+
+    // Check 2: Filter only tracks that have a working preview URL
+    const tracksWithAudio = response.data.data.filter(t => t.preview && t.preview.length > 0);
+    
+    if (tracksWithAudio.length < 10) {
+        return res.status(400).json({ error: "Not enough audio tracks for a quiz" });
+    }
+    
+    // Create 10 Rounds
+    const rounds = tracksWithAudio.sort(() => 0.5 - Math.random()).slice(0, 10).map(track => {
+      // Pick 3 wrong choices from the same artist's top tracks
+      const others = tracksWithAudio
+        .filter(t => t.id !== track.id)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+        
       const choices = [...others, track].sort(() => 0.5 - Math.random());
+      
       return { 
         preview: track.preview, 
         title: track.title, 
         correctId: track.id, 
-        choices 
+        choices: choices.map(c => ({ id: c.id, title: c.title })) // Clean data
       };
     });
+
     res.json(rounds);
   } catch (err) { 
     res.status(500).json({ error: "Game Setup Error" }); 
@@ -60,12 +83,10 @@ app.get('/api/game/setup/:artistId', async (req, res) => {
 
 // --- 📈 LEADERBOARD ROUTES ---
 
-// Fetch the current Top 5
 app.get('/api/leaderboard', (req, res) => {
   res.json(globalLeaderboard);
 });
 
-// Submit a new score and update the Top 5
 app.post('/api/leaderboard', (req, res) => {
   const { name, score } = req.body;
   
@@ -73,11 +94,11 @@ app.post('/api/leaderboard', (req, res) => {
     return res.status(400).json({ error: "Invalid data" });
   }
 
-  // Add new entry, sort high-to-low, and keep only top 5
-  globalLeaderboard.push({ name, score });
+  // Add, Sort High-to-Low, Keep top 10
+  globalLeaderboard.push({ name, score, date: new Date().toLocaleDateString() });
   globalLeaderboard = globalLeaderboard
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 10);
 
   res.json(globalLeaderboard);
 });
@@ -85,5 +106,5 @@ app.post('/api/leaderboard', (req, res) => {
 // --- 🚀 SERVER LAUNCH ---
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`Peak Server running on port ${PORT}`);
+  console.log(`VECTFLIX Peak Server running on port ${PORT}`);
 });
