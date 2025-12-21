@@ -45,7 +45,14 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // Search Logic
+  // Mock Ranking Data (Usually fetched from API)
+  const rankings = [
+    { user: "TopDawg", score: 10, date: "Today" },
+    { user: username || "You", score: score, date: "Just now" },
+    { user: "MusicLvr", score: 9, date: "Yesterday" },
+    { user: "BeatMaster", score: 8, date: "2 days ago" },
+  ];
+
   const filteredArtists = artists.filter(a => 
     a.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -99,7 +106,6 @@ export default function App() {
     <div style={styles.appWrapper}>
       <div style={styles.container}>
         
-        {/* LOGIN OVERLAY */}
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={styles.glassCardResults}>
@@ -118,32 +124,17 @@ export default function App() {
         {view === 'home' && (
           <main>
             <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
-            
-            {/* SEARCH BAR */}
             <div style={styles.searchContainer}>
-              <input 
-                type="text" 
-                placeholder="Search artists..." 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-                style={styles.searchInput}
-              />
+              <input type="text" placeholder="Search artists..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
             </div>
-
             <div style={styles.artistGrid}>
-              {filteredArtists.length > 0 ? (
-                filteredArtists.map(a => (
-                  <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                    <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                    <p style={styles.artistName}>{a.name}</p>
-                  </div>
-                ))
-              ) : (
-                <p style={{gridColumn: '1/-1', textAlign: 'center', opacity: 0.5, marginTop: '20px'}}>No artists found.</p>
-              )}
+              {filteredArtists.map(a => (
+                <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
+                  <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
+                  <p style={styles.artistName}>{a.name}</p>
+                </div>
+              ))}
             </div>
-
-            {/* LEGAL INFO FOOTER */}
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
@@ -173,7 +164,6 @@ export default function App() {
           </div>
         )}
 
-        {/* STEP 1: DISCOVERY SCREEN */}
         {view === 'results' && (
           <div style={styles.glassCardResults}>
             <div style={{marginBottom: '20px'}}>
@@ -184,7 +174,7 @@ export default function App() {
               <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                 <a href={`https://music.apple.com/search?term=${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
-                <a href={`https://open.spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
+                <a href={`https://spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
               </div>
             </div>
             <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px', fontSize: '1.1rem'}} onClick={() => setView('share')}>
@@ -193,7 +183,6 @@ export default function App() {
           </div>
         )}
 
-        {/* STEP 2: FINALE REVEAL CARD */}
         {view === 'share' && (
           <div style={{textAlign: 'center'}}>
             <div style={styles.shareCard}>
@@ -205,17 +194,32 @@ export default function App() {
               </div>
               <p style={{fontSize: '0.7rem', color: '#E50914', fontWeight: 'bold', letterSpacing: '2px', marginTop: '5px'}}>OFFICIAL FAN SCORE</p>
               <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0', lineHeight: '0.8'}}>{score}/10</div>
-              <div style={{opacity: 0.3, fontSize: '0.6rem', marginTop: '25px', borderTop: '1px solid #222', paddingTop: '15px', width: '80%'}}>musicquiz-github-io.vercel.app</div>
+              <div style={{opacity: 0.3, fontSize: '0.6rem', marginTop: '25px', borderTop: '1px solid #222', paddingTop: '15px', width: '80%'}}>musicquiz.vercel.app</div>
             </div>
-            <AdSlot id="share_page_ad" />
-            <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
-                <button style={{...styles.playBtn, flex: 1, background: '#222'}} onClick={handleHomeReturn}>PLAY AGAIN</button>
-                <button style={{...styles.playBtn, flex: 1, background: '#1da1f2'}} onClick={() => {navigator.clipboard.writeText(`I scored ${score}/10 on ${selectedArtist}!`); alert("Score Link Copied!");}}>SHARE</button>
+            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => setView('ranking')}>SEE YOUR GLOBAL RANKING</button>
+            <div style={{display: 'flex', gap: '10px', marginTop: '15px'}}>
+                <button style={{...styles.playBtn, flex: 1, background: '#222'}} onClick={handleHomeReturn}>HOME</button>
+                <button style={{...styles.playBtn, flex: 1, background: '#1da1f2'}} onClick={() => {navigator.clipboard.writeText(`I scored ${score}/10!`); alert("Copied!");}}>SHARE</button>
             </div>
           </div>
         )}
 
-        {/* MAIN PERSISTENT FOOTER */}
+        {view === 'ranking' && (
+          <div style={styles.glassCardResults}>
+            <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL RANKINGS</h2>
+            <AdSlot id="ranking_ad" />
+            <div style={{textAlign: 'left', marginBottom: '30px'}}>
+              {rankings.map((r, i) => (
+                <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #222'}}>
+                  <span>{i+1}. {r.user}</span>
+                  <span style={{color: '#E50914', fontWeight: 'bold'}}>{r.score}/10</span>
+                </div>
+              ))}
+            </div>
+            <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
+          </div>
+        )}
+
         <footer style={styles.footer}>
           <a href="https://instagram.com/vecteezy_1" target="_blank" rel="noreferrer" style={styles.instaLink}>Created by @vecteezy_1</a>
         </footer>
@@ -232,22 +236,22 @@ const styles = {
   userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
   heroText: { fontSize: '2rem', marginBottom: '20px' },
   searchContainer: { marginBottom: '25px' },
-  searchInput: { width: '100%', padding: '15px', background: '#111', border: '1px solid #222', borderRadius: '12px', color: 'white', fontSize: '1rem', outline: 'none' },
+  searchInput: { width: '100%', padding: '15px', background: '#111', border: '1px solid #222', borderRadius: '12px', color: 'white', fontSize: '1rem' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
   artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
   artistName: { fontSize: '0.7rem', marginTop: '5px' },
   gameCard: { background: '#111', padding: '40px 20px', borderRadius: '30px', textAlign: 'center' },
   choicesGrid: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '12px', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold' },
+  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '12px', textAlign: 'left', fontWeight: 'bold' },
   glassCardResults: { background: '#111', padding: '40px 20px', borderRadius: '35px', textAlign: 'center' },
-  statusDot: { width: '8px', height: '8px', background: '#E50914', borderRadius: '50%', display: 'inline-block', marginRight: '8px', boxShadow: '0 0 10px #E50914' },
+  statusDot: { width: '8px', height: '8px', background: '#E50914', borderRadius: '50%', display: 'inline-block', marginRight: '8px' },
   linkButtonWhite: { textDecoration:'none', background:'#fff', color:'#000', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
   linkButtonGreen: { textDecoration:'none', background:'#1DB954', color:'#fff', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
   resultsArtistImg: { width: '80px', borderRadius: '50%', marginBottom: '10px' },
-  playBtn: { width: '100%', padding: '16px', background: '#E50914', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
-  shareCard: { background: '#0a0a0a', padding: '60px 20px', borderRadius: '45px', border: '4px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 20px 60px rgba(229, 9, 20, 0.4)' },
-  verifiedBadge: { background: '#1da1f2', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: 'white', fontWeight: 'bold' },
+  playBtn: { width: '100%', padding: '16px', background: '#E50914', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold' },
+  shareCard: { background: '#0a0a0a', padding: '60px 20px', borderRadius: '45px', border: '4px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  verifiedBadge: { background: '#1da1f2', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: 'white' },
   adSlot: { margin: '30px 0', textAlign: 'center' },
   adPlaceholder: { minHeight: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px' },
   loginOverlay: { position: 'fixed', inset: 0, background: '#000', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
