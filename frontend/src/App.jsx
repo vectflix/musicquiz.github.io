@@ -214,5 +214,3 @@ export default function App() {
             </div>
           </main>
         )}
-
-        {/* --- Game, Results, Share, Ranking, Footer sections stay exactly the same --- */}
