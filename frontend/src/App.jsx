@@ -6,17 +6,26 @@ const API_URL = "https://music-guessing-api-v3.onrender.com";
 const LEGAL_TEXT = {
   about: "VECTFLIX is a premium high-speed music guessing game designed for true audiophiles. Created by @vecteezy_1.",
   howToPlay: "Select an artist, listen to the clip, and guess the title. You have 10 rounds to prove your skills!",
-  privacy: "Privacy Policy: We store high scores locally.",
-  cookies: "Cookies Policy: We use cookies for ads via Google AdSense."
+  privacy: "Privacy Policy: We store high scores locally. No personal data is collected.",
+  cookies: "Cookies Policy: We use cookies for analytics and personalized ads via Google AdSense."
 };
 
+// --- 💰 AD COMPONENT ---
 const AdSlot = ({ id }) => {
   useEffect(() => {
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
   }, []);
   return (
     <div style={styles.adSlot}>
-      <ins className="adsbygoogle" style={{ display: 'block' }} data-ad-client="ca-pub-6249624506404198" data-ad-slot={id} data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <p style={{fontSize: '0.6rem', color: '#444', marginBottom: '8px'}}>ADVERTISEMENT</p>
+      <div style={styles.adPlaceholder}>
+        <ins className="adsbygoogle" 
+             style={{ display: 'block' }} 
+             data-ad-client="ca-pub-6249624506404198" 
+             data-ad-slot={id} 
+             data-ad-format="auto" 
+             data-full-width-responsive="true"></ins>
+      </div>
     </div>
   );
 };
@@ -40,7 +49,9 @@ export default function App() {
 
   useEffect(() => {
     if ((view === 'game' || view === 'ready') && allRounds[roundIndex]) {
-      new Audio(allRounds[roundIndex].preview).preload = "auto";
+      const audio = new Audio();
+      audio.src = allRounds[roundIndex].preview;
+      audio.preload = "auto";
     }
   }, [roundIndex, view, allRounds]);
 
@@ -61,9 +72,11 @@ export default function App() {
     e.preventDefault();
     if (!searchTerm.trim()) return;
     setLoading(true);
-    const res = await fetch(`${API_URL}/api/search/${searchTerm}`);
-    const data = await res.json();
-    setArtists(data);
+    try {
+      const res = await fetch(`${API_URL}/api/search/${searchTerm}`);
+      const data = await res.json();
+      setArtists(data);
+    } catch (err) { console.error("Search failed"); }
     setLoading(false);
   };
 
@@ -71,10 +84,15 @@ export default function App() {
     setLoading(true);
     setSelectedArtist(a.name);
     setSelectedArtistImg(a.picture_medium);
-    const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
-    const data = await res.json();
-    setAllRounds(data);
-    setScore(0); setRoundIndex(0); setView('ready');
+    try {
+      const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
+      const data = await res.json();
+      setAllRounds(data);
+      setScore(0);
+      setRoundIndex(0);
+      setCountdown(null);
+      setView('ready');
+    } catch (err) { alert("Server warming up!"); }
     setLoading(false);
   };
 
@@ -82,19 +100,32 @@ export default function App() {
     setCountdown(3);
     const timer = setInterval(() => {
       setCountdown(prev => {
-        if (prev <= 1) { clearInterval(timer); setView('game'); return null; }
+        if (prev <= 1) {
+          clearInterval(timer);
+          setView('game');
+          return null;
+        }
         return prev - 1;
       });
     }, 1000);
   };
 
+  const copyToClipboard = () => {
+    const text = `I just scored ${score}/10 on ${selectedArtist} at VECTFLIX! 🎧🔥 \nPlay here: musicquiz-github-io.vercel.app`;
+    navigator.clipboard.writeText(text);
+    alert("Result copied to clipboard!");
+  };
+
   const updateLeaderboard = async (finalScore) => {
-    const res = await fetch(`${API_URL}/api/leaderboard`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: username || "Guest", score: finalScore })
-    });
-    setLeaderboard(await res.json());
+    try {
+      const res = await fetch(`${API_URL}/api/leaderboard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: username || "Guest", score: finalScore })
+      });
+      const data = await res.json();
+      setLeaderboard(data);
+    } catch (err) { console.error("Leaderboard error"); }
   };
 
   const handleAnswer = (wasCorrect) => {
@@ -111,13 +142,15 @@ export default function App() {
   return (
     <div style={styles.appWrapper}>
       <div style={styles.container}>
+        
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={styles.glassCardResults}>
-              <h2 style={{color: '#E50914'}}>VECTFLIX</h2>
+              <h2 style={{color: '#E50914', marginBottom: '10px'}}>VECTFLIX</h2>
+              <p style={{fontSize: '0.9rem', opacity: 0.7}}>Enter username to start</p>
               <form onSubmit={handleLogin} style={{marginTop: '20px'}}>
                 <input style={styles.loginInput} placeholder="Username..." value={tempName} onChange={(e) => setTempName(e.target.value)} maxLength={12} />
-                <button type="submit" style={styles.playBtn}>ENTER</button>
+                <button type="submit" style={styles.playBtn}>ENTER GAME</button>
               </form>
             </div>
           </div>
@@ -137,22 +170,33 @@ export default function App() {
                 <button type="submit" style={styles.searchBtn}>🔍</button>
               </form>
             </div>
-            <div style={styles.artistGrid}>
-              {artists.map(a => (
-                <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                  <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                  <p style={styles.artistName}>{a.name}</p>
-                </div>
-              ))}
-            </div>
+            <h3 style={styles.sectionTitle}>Trending</h3>
+            {loading ? <div style={styles.loader}>🎧 LOADING...</div> : (
+              <div style={styles.artistGrid}>
+                {artists.map(a => (
+                  <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
+                    <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
+                    <p style={styles.artistName}>{a.name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
             <AdSlot id="home_banner" />
+            
+            {/* LEGAL & ABOUT SECTION */}
+            <div style={styles.legalSection}>
+              <h4 style={styles.legalHeading}>About VECTFLIX</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
+              <h4 style={styles.legalHeading}>Privacy & Cookies</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.cookies}</p>
+            </div>
           </main>
         )}
 
         {view === 'ready' && (
           <div style={styles.glassCardResults}>
             <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
-            <h2>{selectedArtist}</h2>
+            <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
             <button style={{...styles.playBtn, background: countdown ? '#555' : '#E50914'}} onClick={triggerCountdown} disabled={countdown !== null}>
               {countdown ? countdown : "START GAME"}
             </button>
@@ -168,30 +212,36 @@ export default function App() {
             <h4 style={{opacity: 0.5}}>GAME OVER</h4>
             <h2 style={{fontSize: '3rem'}}>{score}/10</h2>
             <div style={styles.leaderboardBox}>
-               <h4 style={styles.leaderboardTitle}>TOP 5</h4>
+               <h4 style={styles.leaderboardTitle}>GLOBAL TOP 5</h4>
                {leaderboard.map((entry, i) => (
-                 <div key={i} style={styles.leaderboardRow}><span>{entry.name}</span><span>{entry.score} pts</span></div>
+                 <div key={i} style={styles.leaderboardRow}><span>{i+1}. {entry.name}</span><span style={{color: '#E50914'}}>{entry.score} pts</span></div>
                ))}
             </div>
-            {/* GO TO SHARE PAGE */}
-            <button style={{...styles.playBtn, background: '#1da1f2'}} onClick={() => setView('share')}>SHARE RESULT</button>
-            <button style={{...styles.playBtn, marginTop: '10px'}} onClick={() => setView('home')}>RETRY</button>
+
+            <div style={styles.discoveryBox}>
+              <p style={{fontSize: '0.6rem', opacity: 0.5, marginBottom: '8px'}}>SUPPORT THE ARTIST</p>
+              <a href={`https://music.apple.com/search?term=${selectedArtist}`} target="_blank" rel="noreferrer" style={{...styles.affiliateBtn, background: '#fff', color: '#000'}}>🍎 Apple Music</a>
+              <a href={`https://open.spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={{...styles.affiliateBtn, background: '#1DB954', color: '#fff'}}>🎧 Spotify</a>
+            </div>
+
+            <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '15px'}} onClick={() => setView('share')}>SHARE RESULT</button>
+            <button style={{...styles.playBtn, marginTop: '10px'}} onClick={() => setView('home')}>PLAY AGAIN</button>
+            <AdSlot id="results_banner" />
           </div>
         )}
 
-        {/* --- NEW: THE SHARE PAGE --- */}
         {view === 'share' && (
           <div style={styles.sharePage}>
-            <div id="capture-card" style={styles.shareCard}>
-              <h1 style={{color: '#E50914', fontSize: '1rem'}}>VECTFLIX</h1>
-              <img src={selectedArtistImg} style={{width: '100px', borderRadius: '50%', border: '4px solid #E50914'}} alt="artist" />
-              <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
-              <div style={{fontSize: '2.5rem', fontWeight: 'bold'}}>{score}/10</div>
-              <p style={{opacity: 0.6}}>Can you beat me?</p>
-              <p style={{fontSize: '0.6rem', marginTop: '15px'}}>musicquiz-github-io.vercel.app</p>
+            <div style={styles.shareCard}>
+              <h1 style={{color: '#E50914', fontSize: '1rem', letterSpacing: '2px'}}>VECTFLIX</h1>
+              <img src={selectedArtistImg} style={{width: '120px', borderRadius: '50%', border: '4px solid #E50914', margin: '20px 0'}} alt="artist" />
+              <h2 style={{margin: '0'}}>{selectedArtist}</h2>
+              <div style={{fontSize: '3.5rem', fontWeight: 'bold', color: '#E50914'}}>{score}/10</div>
+              <p style={{opacity: 0.6}}>Can you beat my score?</p>
+              <p style={{fontSize: '0.6rem', marginTop: '20px', opacity: 0.4}}>VECTFLIX | Guess the Hit</p>
             </div>
-            
-            <p style={{fontSize: '0.8rem', margin: '20px 0'}}>Screenshot this to share on IG!</p>
+            <p style={{fontSize: '0.8rem', margin: '20px 0'}}>Screenshot or Copy to Share!</p>
+            <button style={{...styles.playBtn, background: '#222', marginBottom: '10px'}} onClick={copyToClipboard}>📋 COPY TEXT SCORE</button>
             <button style={styles.playBtn} onClick={() => setView('results')}>← BACK</button>
           </div>
         )}
@@ -216,7 +266,7 @@ function GameRound({ roundData, roundNum, onAnswer }) {
   }, [roundData]);
   return (
     <div style={styles.gameCard}>
-      <p>ROUND {roundNum}/10 • {timeLeft}s</p>
+      <p style={{fontWeight:'bold', marginBottom:'20px'}}>ROUND {roundNum}/10 • {timeLeft}s</p>
       <div style={styles.choicesGrid}>
         {roundData.choices.map(c => (
           <button key={c.id} style={styles.choiceBtn} onClick={() => onAnswer(c.id === roundData.correctId)}>{c.title}</button>
@@ -236,21 +286,32 @@ const styles = {
   heroText: { fontSize: '2rem' },
   searchBox: { display: 'flex', background: '#222', borderRadius: '15px', padding: '5px 10px', marginTop: '15px' },
   searchBar: { flex: 1, background: 'transparent', border: 'none', color: 'white', padding: '12px', outline: 'none' },
-  searchBtn: { background: 'none', border: 'none', cursor: 'pointer' },
+  searchBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' },
+  sectionTitle: { fontSize: '0.7rem', opacity: 0.5, textTransform: 'uppercase', marginBottom: '15px' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
-  artistImg: { width: '100%', borderRadius: '50%' },
+  artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
   artistName: { fontSize: '0.7rem', marginTop: '5px' },
   gameCard: { background: '#111', padding: '20px', borderRadius: '20px', textAlign: 'center' },
   choicesGrid: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '10px', textAlign: 'left' },
+  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '10px', textAlign: 'left', cursor: 'pointer' },
   glassCardResults: { background: '#111', padding: '30px', borderRadius: '30px', textAlign: 'center' },
   resultsArtistImg: { width: '80px', borderRadius: '50%', marginBottom: '10px' },
   playBtn: { width: '100%', padding: '15px', background: '#E50914', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' },
   leaderboardBox: { margin: '20px 0', background: '#000', padding: '15px', borderRadius: '10px', textAlign: 'left' },
   leaderboardRow: { display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '5px 0' },
-  sharePage: { textAlign: 'center', padding: '10px' },
-  shareCard: { background: '#111', padding: '40px 20px', borderRadius: '20px', border: '1px solid #333', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  footer: { textAlign: 'center', marginTop: '40px' },
+  discoveryBox: { marginTop: '20px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px' },
+  affiliateBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '8px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '8px' },
+  sharePage: { textAlign: 'center' },
+  shareCard: { background: '#111', padding: '40px 20px', borderRadius: '30px', border: '2px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  adSlot: { margin: '20px 0', textAlign: 'center' },
+  adPlaceholder: { minHeight: '100px', background: 'rgba(255,255,255,0.02)', borderRadius: '15px' },
+  legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px', textAlign: 'left' },
+  legalHeading: { fontSize: '0.7rem', textTransform: 'uppercase', color: '#E50914', marginBottom: '5px' },
+  legalBody: { fontSize: '0.6rem', marginBottom: '15px', opacity: 0.5, lineHeight: '1.4' },
+  loginOverlay: { position: 'fixed', top:0, left:0, right:0, bottom:0, background:'#000', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
+  loginInput: { width: '100%', padding: '15px', background: '#222', border: 'none', borderRadius: '10px', color: 'white', textAlign: 'center', outline: 'none' },
+  loader: { textAlign: 'center', color: '#E50914', padding: '20px' },
+  footer: { textAlign: 'center', marginTop: '40px', paddingBottom: '20px' },
   instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem' }
 };
