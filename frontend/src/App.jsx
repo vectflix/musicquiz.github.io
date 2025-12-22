@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from './AppStyles'; // External Peak Styles
+import styles from './AppStyles'; 
 
 const API_URL = "https://music-guessing-api-v3.onrender.com"; 
 const APPLE_TOKEN = "YOUR_TOKEN_HERE"; 
@@ -38,31 +38,25 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [countdown, setCountdown] = useState(0);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [activeVideo, setActiveVideo] = useState(null); 
   
   const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('v_name') || '');
   const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('v_img') || '');
-  
   const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // PEAK NEWS FETCHING LOGIC
+  // UPDATED: Fetches News and Videos from your Render Proxy
   const fetchEverythingNews = async () => {
     try {
-      // 1. Deezer Charts (For Trending section)
-      const dRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://api.deezer.com/editorial/0/charts')}`);
-      const dJson = await dRes.json();
-      const dData = JSON.parse(dJson.contents);
-      setNewsData(dData.albums.data || []);
+      const vRes = await fetch(`${API_URL}/api/trending`);
+      const vData = await vRes.json();
+      setNewsData(vData);
 
-      // 2. Billboard Live Music News (RSS to JSON - No Key Required)
-      const rssUrl = "https://www.billboard.com/c/music/feed/";
-      const nRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`);
+      const nRes = await fetch(`${API_URL}/api/news`);
       const nData = await nRes.json();
-      if(nData.items) setRealNews(nData.items.slice(0, 8));
-    } catch (e) { 
-      console.error("News update failed, check connection."); 
-    }
+      setRealNews(nData);
+    } catch (e) { console.error("News/Trending sync failed."); }
   };
 
   useEffect(() => {
@@ -113,7 +107,7 @@ export default function App() {
     try {
       const res = await fetch(`${API_URL}/api/search/artists?q=${encodeURIComponent(query)}`);
       const data = await res.json();
-      setArtists(data.filter(item => (item.type === 'artist' || !item.type) && item.name && item.picture_medium));
+      setArtists(data.filter(item => item.name && item.picture_medium));
     } catch (e) { console.error("Search failed"); }
     setIsFetchingArtists(false);
   };
@@ -152,7 +146,7 @@ export default function App() {
       setRoundIndex(0);
       setView('ready');
       setCountdown(5); 
-    } catch (err) { alert("Artist not available for quiz. Try another!"); }
+    } catch (err) { alert("Selection failed."); }
     setIsFetchingArtists(false);
   }
 
@@ -162,12 +156,27 @@ export default function App() {
     else { setView('results'); submitScore(); }
   };
 
-  const handleHomeReturn = () => { setView('home'); setSearchTerm(''); setAppMode('game'); };
+  const handleHomeReturn = () => { setView('home'); setSearchTerm(''); setAppMode('game'); setActiveVideo(null); };
 
   return (
     <div style={styles.appWrapper}>
       <div style={styles.container}>
         
+        {activeVideo && (
+          <div style={styles.modalOverlay} onClick={() => setActiveVideo(null)}>
+            <div style={styles.videoModal} onClick={(e) => e.stopPropagation()}>
+              <button style={styles.closeModal} onClick={() => setActiveVideo(null)}>✕</button>
+              <div style={styles.videoFrame}>
+                <video src={activeVideo.preview} controls autoPlay style={{width: '100%', height: '100%', borderRadius: '15px'}} />
+              </div>
+              <div style={{padding: '20px'}}>
+                <h3 style={{color: '#fff', margin: '0'}}>{activeVideo.title}</h3>
+                <p style={{color: '#E50914', fontWeight: 'bold'}}>{activeVideo.artist?.name}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={styles.glassCardResults}>
@@ -193,14 +202,13 @@ export default function App() {
 
             {appMode === 'news' && (
               <div style={{paddingBottom: '40px'}}>
-                <h2 style={styles.heroText}>Music <span style={{color: '#E50914'}}>Headlines</span></h2>
+                <h2 style={styles.heroText}>Live <span style={{color: '#E50914'}}>Headlines</span></h2>
                 <div style={styles.newsGrid}>
                   {realNews.map((article, i) => (
                     <a key={i} href={article.link} target="_blank" rel="noreferrer" style={{textDecoration: 'none'}}>
                       <div style={styles.newsCard}>
                         <img src={article.thumbnail || "https://images.unsplash.com/photo-1514525253361-bee8a18744ad?w=400"} style={styles.newsImg} alt="news" />
                         <div style={styles.newsInfo}>
-                          <span style={styles.newsTag}>LATEST NEWS</span>
                           <h4 style={{margin: '5px 0', color: '#fff', fontSize: '0.9rem'}}>{article.title}</h4>
                         </div>
                       </div>
@@ -212,16 +220,16 @@ export default function App() {
 
             {appMode === 'video' && (
               <div style={{paddingBottom: '40px'}}>
-                <h2 style={styles.heroText}>Video <span style={{color: '#E50914'}}>Feed</span></h2>
+                <h2 style={styles.heroText}>Trending <span style={{color: '#E50914'}}>Feed</span></h2>
                 <div style={styles.videoGrid}>
-                   {newsData.slice(0, 8).map((vid, i) => (
-                     <div key={i} style={styles.videoCard}>
+                   {newsData.map((vid, i) => (
+                     <div key={i} style={styles.videoCard} onClick={() => setActiveVideo(vid)}>
                        <div style={styles.videoWrapper}>
-                         <img src={vid.cover_big} style={styles.videoThumb} alt="video" />
+                         <img src={vid.album?.cover_big || vid.cover_big} style={styles.videoThumb} alt="video" />
                          <div style={styles.playOverlay}>▶</div>
                        </div>
                        <h4 style={{marginTop: '10px'}}>{vid.title}</h4>
-                       <p style={{fontSize: '0.8rem', opacity: 0.5}}>{vid.artist.name}</p>
+                       <p style={{fontSize: '0.8rem', opacity: 0.5}}>{vid.artist?.name}</p>
                      </div>
                    ))}
                 </div>
@@ -232,7 +240,7 @@ export default function App() {
               <>
                 <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
                 <div style={styles.searchContainer}>
-                  <input type="text" placeholder="Search global artists (e.g. Drake)..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
+                  <input type="text" placeholder="Search artists..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
                   {isFetchingArtists && <div style={styles.loaderLine}></div>}
                 </div>
                 <div style={styles.artistGrid}>
@@ -249,8 +257,6 @@ export default function App() {
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
-              <h4 style={styles.legalHeading}>How to Play</h4>
-              <p style={styles.legalBody}>{LEGAL_TEXT.howToPlay}</p>
               <h4 style={styles.legalHeading}>Privacy Policy</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.privacy}</p>
               <h4 style={styles.legalHeading}>Cookies Policy</h4>
@@ -271,7 +277,6 @@ export default function App() {
             ) : (
               <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
             )}
-            <p style={{fontSize: '0.6rem', opacity: 0.3, marginTop: '10px'}}>Pre-loading audio for lag-free play</p>
           </div>
         )}
 
@@ -290,15 +295,7 @@ export default function App() {
 
         {view === 'results' && (
           <div style={styles.glassCardResults}>
-             <div style={styles.statusDot}></div>
              <p style={{letterSpacing: '3px', fontSize: '0.7rem', opacity: 0.5}}>GAME ANALYZED</p>
-             <div style={{marginTop: '20px', padding: '25px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '1px solid #222'}}>
-               <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
-               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                 <a href={`https://music.apple.com/search?term=${encodeURIComponent(selectedArtist)}&at=${APPLE_TOKEN}&ct=vectflix_results`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
-                 <a href={`spotify:search:${encodeURIComponent(selectedArtist)}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
-               </div>
-             </div>
              <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px'}} onClick={() => setView('share')}>REVEAL SCORE →</button>
           </div>
         )}
@@ -307,22 +304,16 @@ export default function App() {
           <div style={{textAlign: 'center'}}>
             <div style={styles.shareCard}>
               <div style={{color: '#E50914', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '6px', marginBottom: '35px'}}>VECTFLIX</div>
-              <img src={selectedArtistImg} style={{width: '130px', height: '130px', borderRadius: '50%', border: '5px solid #E50914', objectFit: 'cover'}} alt="artist" />
-              <div style={{display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center', marginTop: '20px'}}>
-                <h2 style={{margin: '0', fontSize: '1.8rem', color: '#fff', fontWeight: '900'}}>{selectedArtist}</h2>
-                <div style={styles.verifiedBadge}>✓</div>
-              </div>
+              <img src={selectedArtistImg} style={{width: '130px', height: '130px', borderRadius: '50%', border: '5px solid #E50914', objectFit: 'cover'}} />
               <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
             </div>
-            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => { setView('ranking'); fetchLeaderboard(); }}>SEE GLOBAL RANKING</button>
-            <button style={{...styles.playBtn, background: '#222', marginTop: '10px'}} onClick={handleHomeReturn}>HOME</button>
+            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => { setView('ranking'); fetchLeaderboard(); }}>GLOBAL RANKING</button>
           </div>
         )}
 
         {view === 'ranking' && (
           <div style={styles.glassCardResults}>
             <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL RANKINGS</h2>
-            <AdSlot id="4888078097" /> 
             <div style={{textAlign: 'left', marginBottom: '30px'}}>
               {leaderboard.map((r, i) => (
                 <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #222'}}>
@@ -331,15 +322,15 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
+            <button style={styles.playBtn} onClick={handleHomeReturn}>HOME</button>
           </div>
         )}
 
         <footer style={styles.footer}>
-          <a href="/about.html" style={styles.instaLink}>About</a> | 
-          <a href="/privacy-policy.html" style={styles.instaLink}>Privacy Policy</a> | 
-          <a href="/terms.html" style={styles.instaLink}>Terms</a> | 
-          <a href="/affiliate-disclosure.html" style={styles.instaLink}>Affiliate Disclosure</a>
+          <a href="#" style={styles.instaLink}>About</a> | 
+          <a href="#" style={styles.instaLink}>Privacy</a> | 
+          <a href="#" style={styles.instaLink}>Terms</a> | 
+          <a href="#" style={styles.instaLink}>Affiliate</a>
         </footer>
       </div>
     </div>
