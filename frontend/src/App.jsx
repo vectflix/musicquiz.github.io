@@ -27,11 +27,12 @@ const AdSlot = ({ id }) => {
 
 export default function App() {
   const [view, setView] = useState('home'); 
-  const [appMode, setAppMode] = useState('game'); // Toggle between 'game' and 'news'
+  const [appMode, setAppMode] = useState('game'); // Toggle: 'game', 'news', 'video'
   const [isFetchingArtists, setIsFetchingArtists] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
-  const [newsData, setNewsData] = useState([]); // Deezer News State
+  const [newsData, setNewsData] = useState([]); 
+  const [realNews, setRealNews] = useState([]); // Non-Deezer Music News
   const [allRounds, setAllRounds] = useState([]);
   const [roundIndex, setRoundIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -45,18 +46,24 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // FETCH DEEZER NEWS
-  const fetchMusicNews = async () => {
+  // FETCH ALL NEWS (DEEZER + EXTERNAL)
+  const fetchEverythingNews = async () => {
     try {
-      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://api.deezer.com/editorial/0/charts')}`);
-      const json = await res.json();
-      const data = JSON.parse(json.contents);
-      setNewsData(data.albums.data || []);
-    } catch (e) { console.error("News fetch failed"); }
+      // 1. Deezer Charts
+      const dRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://api.deezer.com/editorial/0/charts')}`);
+      const dJson = await dRes.json();
+      const dData = JSON.parse(dJson.contents);
+      setNewsData(dData.albums.data || []);
+
+      // 2. Real Music News Headlines (Public Music News API)
+      const nRes = await fetch(`https://newsapi.org/v2/everything?q=music+news&sortBy=publishedAt&apiKey=470500858e99499889410360a00445a6`);
+      const nData = await nRes.json();
+      if(nData.articles) setRealNews(nData.articles.slice(0, 8));
+    } catch (e) { console.error("Global News update failed"); }
   };
 
   useEffect(() => {
-    if (appMode === 'news') fetchMusicNews();
+    if (appMode !== 'game') fetchEverythingNews();
   }, [appMode]);
 
   useEffect(() => {
@@ -176,27 +183,62 @@ export default function App() {
         {view === 'home' && (
           <main>
             <div style={styles.modeToggle}>
-              <button style={{...styles.modeBtn, ...(appMode === 'game' ? styles.activeMode : {})}} onClick={() => setAppMode('game')}>🎮 GAME</button>
+              <button style={{...styles.modeBtn, ...(appMode === 'game' ? styles.activeMode : {})}} onClick={() => setAppMode('game')}>🎮 PLAY</button>
               <button style={{...styles.modeBtn, ...(appMode === 'news' ? styles.activeMode : {})}} onClick={() => setAppMode('news')}>📰 NEWS</button>
+              <button style={{...styles.modeBtn, ...(appMode === 'video' ? styles.activeMode : {})}} onClick={() => setAppMode('video')}>🎬 VIDEO</button>
             </div>
 
-            {appMode === 'news' ? (
+            {appMode === 'news' && (
               <div style={{paddingBottom: '40px'}}>
-                <h2 style={styles.heroText}>Deezer <span style={{color: '#E50914'}}>Charts</span></h2>
+                <h2 style={styles.heroText}>Music <span style={{color: '#E50914'}}>Headlines</span></h2>
                 <div style={styles.newsGrid}>
-                  {newsData.map((item, index) => (
-                    <div key={item.id} style={styles.newsCard}>
-                      <img src={item.cover_medium} style={styles.newsImg} alt="news" />
-                      <div style={styles.newsInfo}>
-                        <span style={styles.newsTag}>TRENDING #{index + 1}</span>
-                        <h4 style={{margin: '5px 0', color: '#fff'}}>{item.title}</h4>
-                        <p style={{fontSize: '0.8rem', opacity: 0.6}}>by {item.artist.name}</p>
+                  {realNews.map((article, i) => (
+                    <a key={i} href={article.url} target="_blank" rel="noreferrer" style={{textDecoration: 'none'}}>
+                      <div style={styles.newsCard}>
+                        {article.urlToImage && <img src={article.urlToImage} style={styles.newsImg} alt="news" />}
+                        <div style={styles.newsInfo}>
+                          <span style={styles.newsTag}>{article.source.name}</span>
+                          <h4 style={{margin: '5px 0', color: '#fff'}}>{article.title}</h4>
+                        </div>
                       </div>
-                    </div>
+                    </a>
                   ))}
                 </div>
+                <h2 style={{...styles.heroText, marginTop: '40px'}}>Deezer <span style={{color: '#E50914'}}>Charts</span></h2>
+                <div style={styles.newsGrid}>
+                   {newsData.map((item, index) => (
+                     <div key={item.id} style={styles.newsCard}>
+                       <img src={item.cover_medium} style={styles.newsImg} alt="news" />
+                       <div style={styles.newsInfo}>
+                         <span style={styles.newsTag}>TOP CHART</span>
+                         <h4 style={{margin: '5px 0', color: '#fff'}}>{item.title}</h4>
+                         <p style={{fontSize: '0.8rem', opacity: 0.6}}>by {item.artist.name}</p>
+                       </div>
+                     </div>
+                   ))}
+                </div>
               </div>
-            ) : (
+            )}
+
+            {appMode === 'video' && (
+              <div style={{paddingBottom: '40px'}}>
+                <h2 style={styles.heroText}>Video <span style={{color: '#E50914'}}>Feed</span></h2>
+                <div style={styles.videoGrid}>
+                   {newsData.slice(0, 6).map((vid, i) => (
+                     <div key={i} style={styles.videoCard}>
+                       <div style={styles.videoWrapper}>
+                         <img src={vid.cover_big} style={styles.videoThumb} alt="video" />
+                         <div style={styles.playOverlay}>▶</div>
+                       </div>
+                       <h4 style={{marginTop: '10px'}}>{vid.title}</h4>
+                       <p style={{fontSize: '0.8rem', opacity: 0.5}}>{vid.artist.name}</p>
+                     </div>
+                   ))}
+                </div>
+              </div>
+            )}
+
+            {appMode === 'game' && (
               <>
                 <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
                 <div style={styles.searchContainer}>
@@ -264,7 +306,7 @@ export default function App() {
                <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                  <a href={`https://music.apple.com/search?term=${encodeURIComponent(selectedArtist)}&at=${APPLE_TOKEN}&ct=vectflix_results`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
-                 <a href={`https://open.spotify.com/search/${encodeURIComponent(selectedArtist)}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
+                 <a href={`spotify:search:${encodeURIComponent(selectedArtist)}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
                </div>
              </div>
              <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px'}} onClick={() => setView('share')}>REVEAL SCORE →</button>
