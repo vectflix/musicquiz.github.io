@@ -53,12 +53,11 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // FIXED: Fetch Spotify Top Streamed
+  // Fetch Spotify Top Streamed (Matches Server Endpoint)
   const fetchSpotifyCharts = async () => {
     try {
       const res = await fetch(`${API_URL}/api/spotify/top-streamed`);
       const data = await res.json();
-      // Ensure we set data even if empty to stop the loader
       setSpotifyTop50(Array.isArray(data) ? data : []);
     } catch (e) { 
       console.error("Spotify sync failed", e); 
@@ -327,6 +326,7 @@ export default function App() {
                <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                  <a href={`https://music.apple.com/search?term=${encodeURIComponent(selectedArtist)}&at=${APPLE_TOKEN}&ct=vectflix_results`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
+                 {/* FIXED: Correct Spotify Web Player URL with $ syntax */}
                  <a href={`https://open.spotify.com/search/${encodeURIComponent(selectedArtist)}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
                </div>
              </div>
