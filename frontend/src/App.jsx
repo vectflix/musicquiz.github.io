@@ -5,117 +5,61 @@ const API_URL = "https://music-guessing-api-v3.onrender.com";
 const APPLE_TOKEN = "YOUR_TOKEN_HERE"; 
 
 const LEGAL_TEXT = {
-  about: "VECTFLIX is a premium, high-speed music recognition platform engineered by @vecteezy_1 for a global community of audiophiles...",
-  howToPlay: "To begin your experience, search for any global artist using the integrated search bar...",
-  privacy: "Privacy Policy: Privacy is a core pillar of the VECTFLIX experience...",
-  cookies: "Cookies Policy: VECTFLIX utilizes essential cookies and local storage technologies..."
-};
-
-const AdSlot = ({ id }) => {
-  useEffect(() => {
-    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
-  }, []);
-  return (
-    <div style={styles.adSlot}>
-      <p style={{fontSize: '0.6rem', color: '#444', marginBottom: '8px'}}>ADVERTISEMENT</p>
-      <div style={styles.adPlaceholder}>
-        <ins className="adsbygoogle" style={{ display: 'block' }} data-ad-client="ca-pub-6249624506404198" data-ad-slot={id} data-ad-format="auto" data-full-width-responsive="true"></ins>
-      </div>
-    </div>
-  );
+  about: "VECTFLIX is a premium, high-speed music recognition platform engineered by @vecteezy_1 for a global community of audiophiles. Our mission is to provide a seamless, low-latency environment where users can test their musical knowledge against a massive global database in real-time. By leveraging the VECTFLIX Peak Audio Engine, we deliver high-fidelity track previews and instant scoring, bridging the gap between casual listening and competitive gaming through a sleek, minimalist interface.",
+  howToPlay: "To begin your experience, search for any global artist using the integrated search bar. Once an artist is selected, our engine will optimize the audio catalog during a mandatory 5-second buffer to ensure lag-free play. You will face 10 high-intensity rounds where you must identify the correct track title from the audio clip provided. Every correct guess increases your standing. After the final round, you can finalize your score and see where you rank on the Global Hall of Fame.",
+  privacy: "Privacy Policy: Privacy is a core pillar of the VECTFLIX experience. We prioritize user integrity by operating on a (no-data-collection) model. We do not require emails, passwords, or personal identifiers. Your chosen nickname is stored locally on your device to maintain your session, and competitive scores are transmitted via secure, encrypted protocols to our Render-hosted API solely for leaderboard placement. We never sell, track, or share your personal activity with third parties.",
+  cookies: "Cookies Policy: VECTFLIX utilizes essential cookies and local storage technologies to ensure the platform operates at peak performance. These cookies are used to cache game states, preserve your high scores, and optimize audio buffering speeds. Additionally, we integrate Google AdSense, which may utilize non-personalized cookies to serve relevant advertisements. These ads allow us to keep the VECTFLIX engine free for all users. By continuing to use the platform, you consent to these high-speed data caching technologies."
 };
 
 export default function App() {
   const [view, setView] = useState('home'); 
   const [appMode, setAppMode] = useState('game'); 
-  const [isFetchingArtists, setIsFetchingArtists] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
-  const [newsData, setNewsData] = useState([]); // Billboard News
-  const [allRounds, setAllRounds] = useState([]);
-  const [roundIndex, setRoundIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [countdown, setCountdown] = useState(0);
+  const [newsData, setNewsData] = useState([]); 
   const [leaderboard, setLeaderboard] = useState([]);
-  
-  const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('v_name') || '');
-  const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('v_img') || '');
-  
-  const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
-  const [tempName, setTempName] = useState('');
+  const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
 
-  // PEAK FIX: Fetch Billboard News via Server (Text-Only)
-  const fetchMusicNews = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/news`);
-      const data = await res.json();
-      setNewsData(data);
-    } catch (e) { console.error("Billboard news failed"); }
-  };
-
+  // 1. POPULATE HOME PAGE ON LOAD
   useEffect(() => {
-    if (appMode === 'news') fetchMusicNews();
-  }, [appMode]);
+    // Fetch Top Artists so Home Page is not empty
+    fetch(`${API_URL}/api/spotify/top-streamed`)
+      .then(res => res.json())
+      .then(data => {
+        setArtists(data.map(a => ({
+          id: a.name,
+          name: a.name,
+          picture_medium: a.image || 'https://via.placeholder.com/150'
+        })));
+      })
+      .catch(e => console.error("Warming up server..."));
 
+    fetch(`${API_URL}/api/leaderboard`)
+      .then(res => res.json())
+      .then(data => setLeaderboard(data));
+  }, []);
+
+  // 2. SEARCH LOGIC
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      if (searchTerm.trim().length > 1) searchGlobalArtists(searchTerm);
+      if (searchTerm.trim().length > 1) {
+        fetch(`${API_URL}/api/search/artists?q=${encodeURIComponent(searchTerm)}`)
+          .then(res => res.json())
+          .then(data => setArtists(data));
+      }
     }, 500); 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
-  const searchGlobalArtists = async (query) => {
-    setIsFetchingArtists(true);
-    try {
-      const res = await fetch(`${API_URL}/api/search/artists?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      setArtists(data);
-    } catch (e) { console.error("Search failed"); }
-    setIsFetchingArtists(false);
-  };
-
-  const fetchLeaderboard = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/leaderboard`);
-      const data = await res.json();
-      setLeaderboard(data);
-    } catch (e) { console.error("Leaderboard failed"); }
-  };
-
-  const submitScore = async () => {
-    if (!username) return;
-    try {
-      await fetch(`${API_URL}/api/leaderboard`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: username, score: score })
-      });
-      fetchLeaderboard();
-    } catch (e) { console.error("Score submission failed"); }
-  };
-
-  const startGameSetup = async (a) => {
-    setIsFetchingArtists(true);
-    setSelectedArtist(a.name);
-    setSelectedArtistImg(a.picture_medium);
-    try {
-      const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
-      const data = await res.json();
-      setAllRounds(data);
-      setScore(0);
-      setRoundIndex(0);
-      setView('ready');
-      setCountdown(5); 
-    } catch (err) { alert("Try another artist!"); }
-    setIsFetchingArtists(false);
-  }
-
-  const handleAnswer = (wasCorrect) => {
-    if (wasCorrect) setScore(prev => prev + 1);
-    if (roundIndex < 9) setRoundIndex(prev => prev + 1);
-    else { setView('results'); submitScore(); }
-  };
+  // 3. BILLBOARD NEWS (NO THUMBNAILS)
+  useEffect(() => {
+    if (appMode === 'news' && newsData.length === 0) {
+      fetch(`${API_URL}/api/news`)
+        .then(res => res.json())
+        .then(data => setNewsData(data));
+    }
+  }, [appMode]);
 
   const handleHomeReturn = () => { setView('home'); setSearchTerm(''); setAppMode('game'); };
 
@@ -123,18 +67,18 @@ export default function App() {
     <div style={styles.appWrapper}>
       <div style={styles.container}>
         
-        {!isLoggedIn && (
-          <div style={styles.loginOverlay}>
-            <div style={styles.glassCardResults}>
-              <h2 style={{color: '#E50914', letterSpacing: '4px'}}>VECTFLIX</h2>
-              <input style={styles.loginInput} placeholder="Enter Username..." value={tempName} onChange={(e) => setTempName(e.target.value)} />
-              <button style={styles.playBtn} onClick={() => {if(tempName){localStorage.setItem('vectflix_user', tempName); setUsername(tempName); setIsLoggedIn(true);}}}>ENTER PEAK</button>
-            </div>
+        {/* PEAK HEADER */}
+        <header style={styles.header}>
+          <h1 style={styles.logo} onClick={handleHomeReturn}>VECTFLIX</h1>
+          <div style={styles.searchContainer}>
+            <input 
+              type="text" 
+              placeholder="Search Artists..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+              style={styles.searchInput} 
+            />
           </div>
-        )}
-
-        <header style={styles.header} onClick={handleHomeReturn}>
-          <h1 style={styles.logo}>VECTFLIX</h1>
           {isLoggedIn && <div style={styles.userBadge}>👤 {username}</div>}
         </header>
 
@@ -146,12 +90,12 @@ export default function App() {
             </div>
 
             {appMode === 'news' ? (
-              <div style={{paddingBottom: '40px'}}>
+              <div style={styles.newsSection}>
                 <h2 style={styles.heroText}>Billboard <span style={{color: '#E50914'}}>Peak News</span></h2>
                 <div style={styles.newsList}>
                   {newsData.map((item, index) => (
-                    <div key={index} style={{...styles.newsCard, padding: '15px', borderBottom: '1px solid #222'}}>
-                      {/* PEAK: No Thumbnails as requested */}
+                    <div key={index} style={{padding: '15px 0', borderBottom: '1px solid #333'}}>
+                      {/* PEAK: STRICTLY NO THUMBNAILS */}
                       <h4 style={{color: '#fff', margin: '0 0 5px 0'}}>{item.title}</h4>
                       <p style={{fontSize: '0.75rem', opacity: 0.5}}>{item.pubDate}</p>
                     </div>
@@ -159,26 +103,22 @@ export default function App() {
                 </div>
               </div>
             ) : (
-              <>
-                <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
-                <div style={styles.searchContainer}>
-                  <input type="text" placeholder="Search global artists..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
-                </div>
-                <div style={styles.artistGrid}>
-                  {artists.map(a => (
-                    <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                      <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                      <p style={styles.artistName}>{a.name}</p>
-                    </div>
-                  ))}
-                </div>
-              </>
+              <div style={styles.artistGrid}>
+                {artists.map((a, i) => (
+                  <div key={i} style={styles.artistCard} onClick={() => alert("Setting up " + a.name)}>
+                    <img src={a.picture_medium} style={styles.artistImg} alt="" />
+                    <p style={styles.artistName}>{a.name}</p>
+                  </div>
+                ))}
+              </div>
             )}
 
-            {/* PEAK LEGAL SECTION */}
+            {/* PEAK FOOTER CONTENT (FROM PREVIOUS) */}
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
+              <h4 style={styles.legalHeading}>How to Play</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.howToPlay}</p>
               <h4 style={styles.legalHeading}>Privacy Policy</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.privacy}</p>
               <h4 style={styles.legalHeading}>Cookies Policy</h4>
@@ -187,27 +127,14 @@ export default function App() {
           </main>
         )}
 
-        {/* ... Game/Ready/Results Views (Identical to your logic) ... */}
-        {view === 'ranking' && (
-          <div style={styles.glassCardResults}>
-            <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL RANKINGS</h2>
-            <AdSlot id="4888078097" /> 
-            <div style={{textAlign: 'left', marginBottom: '30px'}}>
-              {leaderboard.map((r, i) => (
-                <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #222'}}>
-                  <span>{i+1}. {r.name}</span>
-                  <span style={{color: '#E50914', fontWeight: 'bold'}}>{r.score}/10</span>
-                </div>
-              ))}
-            </div>
-            <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
-          </div>
-        )}
-
+        {/* FOOTER BAR */}
         <footer style={styles.footer}>
-          <a href="#" style={styles.instaLink}>Cookies</a> | 
-          <a href="#" style={styles.instaLink}>My Account</a> | 
-          <a href="#" style={styles.instaLink}>Privacy</a>
+          <div style={{display: 'flex', gap: '20px', justifyContent: 'center', marginBottom: '10px'}}>
+             <span style={styles.instaLink}>🍪 Cookies</span> | 
+             <span style={styles.instaLink}>👤 My Account</span> | 
+             <span style={styles.instaLink}>📄 Terms</span>
+          </div>
+          <p style={{fontSize: '0.6rem', opacity: 0.4}}>VECTFLIX Peak Audio Engine © 2025</p>
         </footer>
       </div>
     </div>
