@@ -1,41 +1,222 @@
-// AppStyles.js
 const styles = {
-  appWrapper: { minHeight: '100vh', background: '#000', color: 'white', fontFamily: 'sans-serif' },
-  container: { maxWidth: '400px', margin: '0 auto', padding: '20px' },
-  header: { padding: '20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' },
-  logo: { color: '#E50914', fontSize: '1.5rem', fontWeight: '900', letterSpacing: '2px' },
-  userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
-  heroText: { fontSize: '2rem', marginBottom: '20px', fontWeight: '900' },
-  searchContainer: { marginBottom: '25px', position: 'relative' },
-  searchInput: { width: '100%', padding: '18px', background: '#111', border: '1px solid #333', borderRadius: '15px', color: 'white', fontSize: '1rem', outline:'none', boxSizing:'border-box' },
-  loaderLine: { height: '2px', background: '#E50914', width: '30%', position: 'absolute', bottom: '0', borderRadius: '2px' },
-  artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
-  artistCard: { textAlign: 'center', cursor: 'pointer' },
-  artistImg: { width: '100%', borderRadius: '50%', border: '2px solid #222' },
-  artistName: { fontSize: '0.7rem', marginTop: '5px', fontWeight: 'bold' },
-  gameCard: { background: '#111', padding: '40px 20px', borderRadius: '30px', textAlign: 'center' },
-  progressBar: { width: '100%', height: '4px', background: '#222', borderRadius: '2px', marginBottom: '10px' },
-  progressFill: { height: '100%', background: '#E50914', transition: '0.4s' },
-  choicesGrid: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  choiceBtn: { padding: '15px', background: '#222', color: 'white', border: 'none', borderRadius: '12px', textAlign: 'left', fontWeight: 'bold', cursor: 'pointer' },
-  glassCardResults: { background: '#111', padding: '40px 20px', borderRadius: '35px', textAlign: 'center' },
-  statusDot: { width: '8px', height: '8px', background: '#E50914', borderRadius: '50%', display: 'inline-block', marginRight: '8px' },
-  linkButtonWhite: { textDecoration:'none', background:'#fff', color:'#000', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
-  linkButtonGreen: { textDecoration:'none', background:'#1DB954', color:'#fff', padding:'15px', borderRadius:'12px', fontWeight:'bold', display: 'block' },
-  resultsArtistImg: { width: '80px', height: '80px', borderRadius: '50%', marginBottom: '10px', objectFit: 'cover' },
-  playBtn: { width: '100%', padding: '16px', background: '#E50914', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' },
-  shareCard: { background: '#0a0a0a', padding: '60px 20px', borderRadius: '45px', border: '4px solid #E50914', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  verifiedBadge: { background: '#1da1f2', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: 'white' },
-  adSlot: { margin: '30px 0', textAlign: 'center' },
-  adPlaceholder: { minHeight: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px' },
+  appWrapper: { 
+    minHeight: '100vh', 
+    background: 'radial-gradient(circle at top right, #2b0a0a, #000000, #050505)', 
+    color: 'white', 
+    fontFamily: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '20px'
+  },
+  container: { 
+    width: '100%', 
+    maxWidth: '1200px', 
+    margin: '0 auto'
+  },
+  header: { 
+    width: '100%',
+    padding: '20px 0', 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    cursor: 'pointer',
+    marginBottom: '40px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+  },
+  logo: { 
+    color: '#E50914', 
+    fontSize: '1.8rem', 
+    fontWeight: '900', 
+    letterSpacing: '4px',
+    textShadow: '0 0 15px rgba(229, 9, 20, 0.3)'
+  },
+  userBadge: { 
+    background: 'rgba(255, 255, 255, 0.08)', 
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    padding: '8px 18px', 
+    borderRadius: '40px', 
+    fontSize: '0.85rem',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+  },
+  heroText: { 
+    fontSize: '3.5rem', 
+    marginBottom: '10px', 
+    fontWeight: '900', 
+    textAlign: 'center',
+    letterSpacing: '-1px'
+  },
+  searchContainer: { 
+    marginBottom: '50px', 
+    position: 'relative',
+    maxWidth: '650px',
+    margin: '20px auto 50px auto'
+  },
+  searchInput: { 
+    width: '100%', 
+    padding: '22px 30px', 
+    background: 'rgba(255, 255, 255, 0.03)', 
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)', 
+    borderRadius: '20px', 
+    color: 'white', 
+    fontSize: '1.1rem', 
+    outline: 'none', 
+    boxSizing: 'border-box',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.4)'
+  },
+  loaderLine: { 
+    height: '3px', 
+    background: '#E50914', 
+    width: '40%', 
+    position: 'absolute', 
+    bottom: '0', 
+    left: '30%',
+    borderRadius: '10px',
+    boxShadow: '0 0 10px #E50914'
+  },
+  artistGrid: { 
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', 
+    gap: '20px',
+    width: '100%'
+  },
+  artistCard: { 
+    textAlign: 'center', 
+    cursor: 'pointer',
+    padding: '25px 15px',
+    background: 'rgba(255, 255, 255, 0.02)',
+    backdropFilter: 'blur(10px)',
+    borderRadius: '30px',
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+    transition: 'transform 0.3s ease'
+  },
+  artistImg: { 
+    width: '120px', 
+    height: '120px',
+    borderRadius: '50%', 
+    border: '4px solid rgba(229, 9, 20, 0.2)', 
+    marginBottom: '15px',
+    objectFit: 'cover'
+  },
+  artistName: { 
+    fontSize: '1rem', 
+    fontWeight: 'bold', 
+    letterSpacing: '0.5px',
+    opacity: 0.9
+  },
+  gameCard: { 
+    background: 'rgba(10, 10, 10, 0.6)', 
+    backdropFilter: 'blur(30px)',
+    WebkitBackdropFilter: 'blur(30px)',
+    padding: '60px 40px', 
+    borderRadius: '45px', 
+    textAlign: 'center',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    maxWidth: '600px',
+    margin: '40px auto'
+  },
+  glassCardResults: { 
+    background: 'rgba(255, 255, 255, 0.03)', 
+    backdropFilter: 'blur(35px)',
+    WebkitBackdropFilter: 'blur(35px)',
+    padding: '50px 30px', 
+    borderRadius: '40px', 
+    textAlign: 'center',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    maxWidth: '550px',
+    margin: '0 auto'
+  },
+  progressBar: { 
+    width: '100%', 
+    height: '6px', 
+    background: 'rgba(255,255,255,0.1)', 
+    borderRadius: '10px', 
+    marginBottom: '20px',
+    overflow: 'hidden'
+  },
+  progressFill: { 
+    height: '100%', 
+    background: 'linear-gradient(90deg, #E50914, #ff4d4d)', 
+    transition: 'width 0.5s ease-out' 
+  },
+  choicesGrid: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  choiceBtn: { 
+    padding: '20px 25px', 
+    background: 'rgba(255, 255, 255, 0.05)', 
+    color: 'white', 
+    border: '1px solid rgba(255,255,255,0.1)', 
+    borderRadius: '18px', 
+    textAlign: 'left', 
+    fontWeight: '600', 
+    cursor: 'pointer',
+    fontSize: '1.05rem'
+  },
+  playBtn: { 
+    width: '100%', 
+    padding: '20px', 
+    background: '#E50914', 
+    color: 'white', 
+    border: 'none', 
+    borderRadius: '18px', 
+    fontWeight: '900', 
+    fontSize: '1.2rem',
+    cursor: 'pointer',
+    boxShadow: '0 8px 25px rgba(229, 9, 20, 0.4)'
+  },
+  shareCard: { 
+    background: 'rgba(0, 0, 0, 0.5)', 
+    backdropFilter: 'blur(40px)',
+    padding: '60px 40px', 
+    borderRadius: '60px', 
+    border: '3px solid #E50914', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center'
+  },
+  verifiedBadge: { 
+    background: '#1da1f2', 
+    width: '24px', 
+    height: '24px', 
+    borderRadius: '50%', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    fontSize: '14px', 
+    color: 'white',
+    marginLeft: '8px'
+  },
+  linkButtonWhite: { textDecoration:'none', background:'rgba(255,255,255,0.9)', color:'#000', padding:'18px', borderRadius:'15px', fontWeight:'bold', display: 'block', marginBottom: '10px' },
+  linkButtonGreen: { textDecoration:'none', background:'#1DB954', color:'#fff', padding:'18px', borderRadius:'15px', fontWeight:'bold', display: 'block' },
+  footer: { 
+    textAlign: 'center', 
+    marginTop: '80px', 
+    paddingBottom: '40px',
+    width: '100%',
+    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+    paddingTop: '40px'
+  },
+  instaLink: { color: 'rgba(255,255,255,0.3)', textDecoration: 'none', fontSize: '0.9rem', margin: '0 15px' },
+  legalSection: { marginTop: '60px', width: '100%', maxWidth: '900px', margin: '60px auto 0 auto' },
+  legalHeading: { fontSize: '0.8rem', textTransform: 'uppercase', color: '#E50914', marginBottom: '10px', letterSpacing: '2px', fontWeight: 'bold' },
+  legalBody: { fontSize: '0.8rem', lineHeight: '1.8', marginBottom: '25px', opacity: 0.4 },
+  countdownBox: { 
+    padding: '40px', 
+    background: 'rgba(255,255,255,0.02)', 
+    borderRadius: '35px', 
+    border: '2px solid rgba(229, 9, 20, 0.5)',
+    display: 'inline-block',
+    minWidth: '200px'
+  },
+  statusDot: { width: '10px', height: '10px', background: '#E50914', borderRadius: '50%', display: 'inline-block', marginRight: '10px' },
+  adSlot: { margin: '40px 0', textAlign: 'center' },
+  adPlaceholder: { minHeight: '150px', background: 'rgba(255,255,255,0.02)', borderRadius: '25px' },
   loginOverlay: { position: 'fixed', inset: 0, background: '#000', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
-  loginInput: { width: '100%', padding: '18px', background: '#222', border: '1px solid #E50914', borderRadius: '10px', color: 'white', textAlign: 'center', margin: '20px 0' },
-  footer: { textAlign: 'center', marginTop: '40px', paddingBottom: '20px' },
-  instaLink: { color: '#444', textDecoration: 'none', fontSize: '0.8rem', margin: '0 5px' },
-  legalSection: { marginTop: '40px', borderTop: '1px solid #222', paddingTop: '20px' },
-  legalHeading: { fontSize: '0.7rem', textTransform: 'uppercase', color: '#E50914', marginBottom: '5px' },
-  legalBody: { fontSize: '0.6rem', marginBottom: '15px', opacity: 0.5 },
-  countdownBox: { padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '2px solid #E50914' }
+  loginInput: { width: '100%', padding: '20px', background: 'rgba(255,255,255,0.05)', border: '1px solid #E50914', borderRadius: '15px', color: 'white', textAlign: 'center', margin: '25px 0', fontSize: '1.2rem' },
+  resultsArtistImg: { width: '100px', height: '100px', borderRadius: '50%', marginBottom: '15px', objectFit: 'cover', border: '3px solid #E50914' }
 };
 
 export default styles;
