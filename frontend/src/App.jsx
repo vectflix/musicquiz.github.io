@@ -41,6 +41,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
   const [newsData, setNewsData] = useState([]); 
+  const [spotifyTop50, setSpotifyTop50] = useState([]); // New Spotify State
   const [allRounds, setAllRounds] = useState([]);
   const [roundIndex, setRoundIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -54,6 +55,15 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
+  // NEW: Fetch Spotify Top Streamed
+  const fetchSpotifyCharts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/spotify/top-streamed`);
+      const data = await res.json();
+      setSpotifyTop50(data || []);
+    } catch (e) { console.error("Spotify sync failed"); }
+  };
+
   const fetchMusicNews = async () => {
     try {
       const res = await fetch(`${API_URL}/api/news`); 
@@ -64,6 +74,7 @@ export default function App() {
 
   useEffect(() => {
     if (appMode === 'news') fetchMusicNews();
+    if (appMode === 'charts') fetchSpotifyCharts(); // Trigger fetch on mode change
   }, [appMode]);
 
   useEffect(() => {
@@ -182,12 +193,22 @@ export default function App() {
 
         {view === 'home' && (
           <main>
-            <div style={styles.modeToggle}>
+            <div style={{...styles.modeToggle, flexWrap: 'wrap'}}>
               <button style={{...styles.modeBtn, ...(appMode === 'game' ? styles.activeMode : {})}} onClick={() => setAppMode('game')}>🎮 GAME</button>
               <button style={{...styles.modeBtn, ...(appMode === 'news' ? styles.activeMode : {})}} onClick={() => setAppMode('news')}>📰 NEWS</button>
+              <button 
+                style={{
+                  ...styles.modeBtn, 
+                  ...(appMode === 'charts' ? { background: '#1DB954', borderColor: '#1DB954', boxShadow: '0 0 15px rgba(29, 185, 84, 0.3)' } : {borderColor: '#1DB954'}),
+                  minWidth: isMobile ? '160px' : 'auto'
+                }} 
+                onClick={() => setAppMode('charts')}
+              >
+                📈 TOP STREAMED ARTISTS
+              </button>
             </div>
 
-            {appMode === 'news' ? (
+            {appMode === 'news' && (
               <div style={{paddingBottom: '40px'}}>
                 <h2 style={styles.heroText}>Billboard <span style={{color: '#E50914'}}>Headlines</span></h2>
                 <div style={{ ...styles.newsGrid, ...(isMobile ? styles.newsGridMobile : {}) }}>
@@ -202,7 +223,41 @@ export default function App() {
                   )) : <p style={{opacity: 0.5, textAlign: 'center'}}>Syncing latest music news...</p>}
                 </div>
               </div>
-            ) : (
+            )}
+
+            {appMode === 'charts' && (
+              <div style={{ paddingBottom: '60px', width: '100%', maxWidth: '900px', margin: '0 auto' }}>
+                <h2 style={styles.heroText}>Most <span style={{color: '#1DB954'}}>Streamed</span></h2>
+                <p style={{textAlign: 'center', opacity: 0.5, marginBottom: '35px', fontSize: '0.8rem'}}>Global Monthly Listeners (Spotify Real-Time)</p>
+                
+                {spotifyTop50.length > 0 ? spotifyTop50.map((artist, index) => (
+                  <div key={index} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '12px' : '15px 25px', 
+                    background: 'rgba(255,255,255,0.02)', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '8px'
+                  }}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                      <span style={{ fontWeight: '900', color: '#1DB954', width: '35px', fontSize: '1.1rem' }}>{index + 1}</span>
+                      <img src={artist.image} style={{width: '45px', height: '45px', borderRadius: '50%', objectFit: 'cover'}} alt={artist.name} />
+                      <div>
+                        <div style={{fontWeight: 'bold', fontSize: isMobile ? '0.85rem' : '1rem'}}>{artist.name}</div>
+                        <div style={{fontSize: '0.65rem', opacity: 0.4}}>{artist.followers.toLocaleString()} Followers</div>
+                      </div>
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                      <div style={{ color: '#1DB954', fontWeight: 'bold', fontSize: '0.9rem' }}>{artist.monthlyListeners.toLocaleString()}</div>
+                      <div style={{fontSize: '0.55rem', opacity: 0.3, letterSpacing: '1px'}}>MONTHLY LISTENERS</div>
+                    </div>
+                  </div>
+                )) : (
+                  <div style={{textAlign: 'center', marginTop: '50px'}}>
+                    <div style={styles.loaderLine}></div>
+                    <p style={{opacity: 0.5, fontSize: '0.8rem'}}>Syncing Global Spotify Charts...</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {appMode === 'game' && (
               <>
                 <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
                 <div style={styles.searchContainer}>
