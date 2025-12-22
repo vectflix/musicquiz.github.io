@@ -6,7 +6,7 @@ const APPLE_TOKEN = "YOUR_TOKEN_HERE";
 
 const LEGAL_TEXT = {
   about: "VECTFLIX is a premium, high-speed music recognition platform engineered by @vecteezy_1 for a global community of audiophiles. Our mission is to provide a seamless, low-latency environment where users can test their musical knowledge against a massive global database in real-time.",
-  howToPlay: "Search for any global artist. Once selected, our engine optimizes the audio catalog during a 5-second buffer. Identify the correct track title from the audio clips provided across 10 rounds to climb the Global Hall of Fame.",
+  howToPlay: "Search for any global artist. In Game Mode, our engine optimizes the catalog for 10 rounds of high-intensity guessing. In Discover Mode, explore artists through high-fidelity video previews and genre-based curation.",
   privacy: "Privacy Policy: VECTFLIX operates on a no-data-collection model. We do not require emails or passwords. Your chosen nickname is stored locally to maintain your session, and scores are transmitted via secure protocols to our leaderboard.",
   cookies: "Cookies Policy: We use essential local storage to cache game states and preserve high scores. We integrate Google AdSense for non-personalized ads to keep the VECTFLIX engine free for all users."
 };
@@ -27,6 +27,7 @@ const AdSlot = ({ id }) => {
 
 export default function App() {
   const [view, setView] = useState('home'); 
+  const [appMode, setAppMode] = useState('game'); // 'game' or 'discover'
   const [isFetchingArtists, setIsFetchingArtists] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
@@ -173,19 +174,83 @@ export default function App() {
 
         {view === 'home' && (
           <main>
-            <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
+            {/* MODE TOGGLE ABOVE SEARCHBAR */}
+            <div style={styles.modeToggle}>
+              <button 
+                style={{...styles.modeBtn, ...(appMode === 'game' ? styles.activeMode : {})}} 
+                onClick={() => setAppMode('game')}
+              >🎮 GAME MODE</button>
+              <button 
+                style={{...styles.modeBtn, ...(appMode === 'discover' ? styles.activeMode : {})}} 
+                onClick={() => setAppMode('discover')}
+              >📺 DISCOVER VIDEO</button>
+            </div>
+
+            <h2 style={styles.heroText}>
+              {appMode === 'game' ? <>Guess the <span style={{color:'#E50914'}}>Hit</span></> : <>Video <span style={{color:'#E50914'}}>Previews</span></>}
+            </h2>
+
             <div style={styles.searchContainer}>
-              <input type="text" placeholder="Search global artists (e.g. Drake)..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
+              <input 
+                type="text" 
+                placeholder={appMode === 'game' ? "Search global artists (e.g. Drake)..." : "Search for videos or artists..."} 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                style={styles.searchInput} 
+              />
               {isFetchingArtists && <div style={styles.loaderLine}></div>}
             </div>
+
+            {/* GENRE SEARCH SECTION (Only in Discover Mode when not searching) */}
+            {appMode === 'discover' && searchTerm === '' && (
+              <div style={{marginBottom: '40px'}}>
+                <h3 style={{fontSize: '1.2rem', opacity: 0.8, marginBottom: '20px'}}>Browse Genres</h3>
+                <div style={styles.genreGrid}>
+                  {['Pop', 'Hip-Hop', 'Rock', 'Afrobeats', 'R&B', 'Latin'].map(genre => (
+                    <div key={genre} style={styles.genreCard} onClick={() => setSearchTerm(genre)}>
+                      {genre}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={styles.artistGrid}>
               {artists.map(a => (
-                <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
+                <div key={a.id} style={styles.artistCard} onClick={() => {
+                  if(appMode === 'game') startGameSetup(a);
+                  else { 
+                    setSelectedArtist(a.name);
+                    setSelectedArtistImg(a.picture_medium);
+                    setView('videoPlayer'); 
+                  }
+                }}>
                   <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
                   <p style={styles.artistName}>{a.name}</p>
+                  {appMode === 'discover' && <span style={{fontSize: '0.6rem', color: '#E50914', fontWeight: 'bold'}}>WATCH PREVIEW</span>}
                 </div>
               ))}
             </div>
+
+            {/* MUSIC PULSE NEWS SECTION */}
+            <div style={styles.newsSection}>
+              <h3 style={{fontSize: '1.5rem', fontWeight: '900', letterSpacing: '-0.5px'}}>
+                Music <span style={{color: '#E50914'}}>Pulse</span>
+              </h3>
+              <div style={styles.newsGrid}>
+                <div style={styles.newsCard}>
+                  <span style={styles.newsTag}>Trending Now</span>
+                  <h4 style={{margin: '0 0 10px 0'}}>The Return of Vinyl: 2025 Sales Record</h4>
+                  <p style={{fontSize: '0.85rem', opacity: 0.5, lineHeight: '1.5'}}>Physical media continues to surge as audiophiles prioritize high-fidelity analog sound.</p>
+                </div>
+                <div style={styles.newsCard}>
+                  <span style={styles.newsTag}>Artist Update</span>
+                  <h4 style={{margin: '0 0 10px 0'}}>Global Tour Alert: Stadiums Booked</h4>
+                  <p style={{fontSize: '0.85rem', opacity: 0.5, lineHeight: '1.5'}}>Major artists have begun announcing dates for the 2026 World Festival Circuit.</p>
+                </div>
+              </div>
+            </div>
+
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
@@ -197,6 +262,24 @@ export default function App() {
               <p style={styles.legalBody}>{LEGAL_TEXT.cookies}</p>
             </div>
           </main>
+        )}
+
+        {/* VIDEO PLAYER VIEW */}
+        {view === 'videoPlayer' && (
+          <div style={styles.glassCardResults}>
+            <div style={styles.videoContainer}>
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(selectedArtist + " official music video preview")}`} 
+                frameBorder="0" 
+                allowFullScreen
+              ></iframe>
+            </div>
+            <h2 style={{margin: '20px 0'}}>{selectedArtist}</h2>
+            <button style={styles.playBtn} onClick={() => setView('home')}>EXIT PLAYER</button>
+            <p style={{fontSize: '0.6rem', opacity: 0.3, marginTop: '10px'}}>Preview powered by the VECTFLIX Visual Engine</p>
+          </div>
         )}
 
         {view === 'ready' && (
@@ -211,6 +294,7 @@ export default function App() {
             ) : (
               <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
             )}
+            <p style={{fontSize: '0.6rem', opacity: 0.3, marginTop: '10px'}}>Pre-loading audio for lag-free play</p>
           </div>
         )}
 
@@ -254,6 +338,7 @@ export default function App() {
               <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
             </div>
             <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => { setView('ranking'); fetchLeaderboard(); }}>SEE GLOBAL RANKING</button>
+            <button style={{...styles.playBtn, background: '#222', marginTop: '10px'}} onClick={handleHomeReturn}>HOME</button>
           </div>
         )}
 
@@ -271,7 +356,7 @@ export default function App() {
                 return (
                   <div key={i} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
                     <div style={{display: 'flex', alignItems: 'center'}}>
-                      <div style={i < 3 ? badgeStyle : {marginRight: '25px', opacity: 0.5}}>{i + 1}</div>
+                      <div style={i < 3 ? badgeStyle : {marginRight: '25px', opacity: 0.5, width: '28px', textAlign: 'center'}}>{i + 1}</div>
                       <span style={{fontWeight: i < 3 ? 'bold' : 'normal'}}>{r.name}</span>
                     </div>
                     <span style={{color: i === 0 ? '#FFD700' : '#E50914', fontWeight: 'bold'}}>{r.score}/10</span>
@@ -279,7 +364,7 @@ export default function App() {
                 );
               })}
             </div>
-            <button style={styles.playBtn} onClick={handleHomeReturn}>NEW CHALLENGE</button>
+            <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
           </div>
         )}
 
