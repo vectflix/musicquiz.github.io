@@ -9,11 +9,10 @@ app.use(cors());
 app.use(express.json());
 
 // --- CONFIG ---
-// Hardcoding your key here as requested to ensure "Peak" stability
 const LASTFM_KEY = '982e349c8a6d19ddeb9c5244939130ec'; 
 const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard.json');
+const BILLBOARD_RSS = "https://www.billboard.com/feed/";
 
-// Helper to handle Leaderboard Data
 const readLeaderboard = () => {
   try {
     if (!fs.existsSync(LEADERBOARD_FILE)) return [];
@@ -28,7 +27,17 @@ const writeLeaderboard = (data) => {
 
 // --- ROUTES ---
 
-// A. Deezer Artist Search (For the Game)
+// Billboard News (Proxied to avoid CORS)
+app.get('/api/news', async (req, res) => {
+  try {
+    const response = await axios.get(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(BILLBOARD_RSS)}`);
+    res.json(response.data.items || []); 
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch Billboard news" });
+  }
+});
+
+// Deezer Artist Search
 app.get('/api/search/artists', async (req, res) => {
   const query = req.query.q || "";
   try {
@@ -37,7 +46,7 @@ app.get('/api/search/artists', async (req, res) => {
   } catch (err) { res.status(500).json({ error: "Search Error" }); }
 });
 
-// B. Game Setup (Fetches tracks & generates 10 rounds)
+// Game Setup (10 Rounds)
 app.get('/api/game/setup/:artistId', async (req, res) => {
   try {
     const response = await axios.get(`https://api.deezer.com/artist/${req.params.artistId}/top?limit=50`);
@@ -56,33 +65,7 @@ app.get('/api/game/setup/:artistId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: "Setup Error" }); }
 });
 
-// C. FIXED: Top Streamed Artists (Last.fm Integration)
-app.get('/api/spotify/top-streamed', async (req, res) => {
-  try {
-    if (!LASTFM_KEY) return res.status(500).json({ error: "Last.fm Key Missing" });
-    const response = await axios.get(`https://ws.audioscrobbler.com/2.0/`, {
-      params: {
-        method: 'chart.gettopartists',
-        api_key: LASTFM_KEY,
-        format: 'json',
-        limit: 20
-      }
-    });
-    const artists = response.data.artists?.artist || [];
-    const formattedData = artists.map(artist => ({
-      name: artist.name,
-      image: artist.image ? artist.image[3]['#text'] || artist.image[2]['#text'] : "",
-      followers: parseInt(artist.listeners) || 0,
-      popularity: "PEAK",
-      link: artist.url
-    }));
-    res.json(formattedData);
-  } catch (err) {
-    res.status(500).json({ error: "Last.fm Sync Failed" });
-  }
-});
-
-// D. Global Leaderboard
+// Leaderboard Routes
 app.get('/api/leaderboard', (req, res) => res.json(readLeaderboard()));
 app.post('/api/leaderboard', (req, res) => {
   const { name, score } = req.body;
