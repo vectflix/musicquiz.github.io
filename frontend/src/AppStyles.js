@@ -7,11 +7,12 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    padding: '20px'
+    padding: '20px',
+    transition: 'background 1.5s ease' // Smooth transition for dynamic colors
   },
   container: { 
-    width: '100%', 
-    maxWidth: '1200px', 
+    width: '95%', // Allows the web to extend closer to device edges
+    maxWidth: '1400px', // Increased from 1200px for ultra-wide laptop support
     margin: '0 auto'
   },
   header: { 
@@ -42,7 +43,7 @@ const styles = {
     boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
   },
   heroText: { 
-    fontSize: '3.5rem', 
+    fontSize: 'clamp(2rem, 5vw, 3.5rem)', // Adjusts font size based on screen width
     marginBottom: '10px', 
     fontWeight: '900', 
     textAlign: 'center',
@@ -80,8 +81,8 @@ const styles = {
   },
   artistGrid: { 
     display: 'grid', 
-    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', 
-    gap: '20px',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', // Slightly larger cards for wide screens
+    gap: '25px',
     width: '100%'
   },
   artistCard: { 
@@ -92,11 +93,12 @@ const styles = {
     backdropFilter: 'blur(10px)',
     borderRadius: '30px',
     border: '1px solid rgba(255, 255, 255, 0.05)',
-    transition: 'transform 0.3s ease'
+    transition: 'all 0.3s ease',
+    ':hover': { transform: 'scale(1.05)', background: 'rgba(255,255,255,0.08)' }
   },
   artistImg: { 
-    width: '120px', 
-    height: '120px',
+    width: '140px', 
+    height: '140px',
     borderRadius: '50%', 
     border: '4px solid rgba(229, 9, 20, 0.2)', 
     marginBottom: '15px',
@@ -108,6 +110,25 @@ const styles = {
     letterSpacing: '0.5px',
     opacity: 0.9
   },
+  
+  // LEADERBOARD BADGES
+  rankBadge: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '0.75rem',
+    fontWeight: '900',
+    marginRight: '15px',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+  },
+  gold: { background: 'linear-gradient(45deg, #FFD700, #FFA500)', color: '#000', border: '1px solid #FFF' },
+  silver: { background: 'linear-gradient(45deg, #C0C0C0, #8E8E8E)', color: '#000', border: '1px solid #FFF' },
+  bronze: { background: 'linear-gradient(45deg, #CD7F32, #8B4513)', color: '#FFF', border: '1px solid #FFF' },
+  defaultRank: { background: 'rgba(255,255,255,0.1)', color: '#AAA', border: '1px solid rgba(255,255,255,0.1)' },
+
   gameCard: { 
     background: 'rgba(10, 10, 10, 0.6)', 
     backdropFilter: 'blur(30px)',
@@ -153,7 +174,9 @@ const styles = {
     textAlign: 'left', 
     fontWeight: '600', 
     cursor: 'pointer',
-    fontSize: '1.05rem'
+    fontSize: '1.05rem',
+    transition: '0.2s',
+    ':hover': { background: 'rgba(255,255,255,0.1)', borderColor: '#E50914' }
   },
   playBtn: { 
     width: '100%', 
@@ -175,7 +198,9 @@ const styles = {
     border: '3px solid #E50914', 
     display: 'flex', 
     flexDirection: 'column', 
-    alignItems: 'center'
+    alignItems: 'center',
+    margin: '0 auto',
+    maxWidth: '500px'
   },
   verifiedBadge: { 
     background: '#1da1f2', 
@@ -200,7 +225,7 @@ const styles = {
     paddingTop: '40px'
   },
   instaLink: { color: 'rgba(255,255,255,0.3)', textDecoration: 'none', fontSize: '0.9rem', margin: '0 15px' },
-  legalSection: { marginTop: '60px', width: '100%', maxWidth: '900px', margin: '60px auto 0 auto' },
+  legalSection: { marginTop: '60px', width: '100%', maxWidth: '1000px', margin: '60px auto 0 auto' },
   legalHeading: { fontSize: '0.8rem', textTransform: 'uppercase', color: '#E50914', marginBottom: '10px', letterSpacing: '2px', fontWeight: 'bold' },
   legalBody: { fontSize: '0.8rem', lineHeight: '1.8', marginBottom: '25px', opacity: 0.4 },
   countdownBox: { 
