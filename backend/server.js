@@ -8,27 +8,32 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- SPOTIFY CONFIG ---
+// --- SPOTIFY CONFIG (Pulling from Render Environment Variables) ---
 const SPOT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
+// Path to persistent leaderboard file
 const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard.json');
 
+// --- Helper functions ---
 const readLeaderboard = () => {
   try {
     const data = fs.readFileSync(LEADERBOARD_FILE, 'utf8');
     return JSON.parse(data);
-  } catch (err) { return []; }
+  } catch (err) {
+    return [];
+  }
 };
 
 const writeLeaderboard = (data) => {
   fs.writeFileSync(LEADERBOARD_FILE, JSON.stringify(data, null, 2), 'utf8');
 };
 
+// Helper: Get Spotify Access Token
 const getSpotifyToken = async () => {
   try {
     if (!SPOT_ID || !SPOT_SECRET) {
-      console.error("CRITICAL: Environment Variables for Spotify are MISSING on Render!");
+      console.error("Missing SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET in Env Vars");
       return null;
     }
     const params = new URLSearchParams();
@@ -48,41 +53,83 @@ const getSpotifyToken = async () => {
   }
 };
 
-// --- ROUTES ---
+// --- 🎵 MUSIC API ROUTES ---
 
+// 1. Trending artists (Game Home)
 app.get('/api/artists', async (req, res) => {
   try {
     const response = await axios.get('https://api.deezer.com/chart/0/artists');
     res.json(response.data.data);
-  } catch (err) { res.status(500).json({ error: "Deezer Error" }); }
+  } catch (err) { 
+    res.status(500).json({ error: "Deezer API Error" }); 
+  }
 });
 
+// 2. Search artists globally
 app.get('/api/search/artists', async (req, res) => {
   const query = req.query.q || "";
+  if (!query) return res.json([]);
   try {
     const response = await axios.get(`https://api.deezer.com/search/artist?q=${encodeURIComponent(query)}`);
     res.json(response.data.data);
-  } catch (err) { res.status(500).json({ error: "Search Error" }); }
+  } catch (err) { 
+    res.status(500).json({ error: "Search Error" }); 
+  }
 });
 
-// --- THE FIXED SPOTIFY ROUTE ---
+// 3. Game setup for quiz
+app.get('/api/game/setup/:artistId', async (req, res) => {
+  try {
+    const response = await axios.get(`https://api.deezer.com/artist/${req.params.artistId}/top?limit=50`);
+    const tracksWithAudio = (response.data.data || []).filter(t => t.preview && t.preview.length > 0);
+    
+    if (tracksWithAudio.length < 10) {
+      return res.status(400).json({ error: "Not enough audio tracks for a quiz" });
+    }
+
+    const rounds = tracksWithAudio.sort(() => 0.5 - Math.random()).slice(0, 10).map(track => {
+      const others = tracksWithAudio
+        .filter(t => t.id !== track.id)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+
+      const choices = [...others, track].sort(() => 0.5 - Math.random());
+
+      return {
+        preview: track.preview,
+        title: track.title,
+        correctId: track.id,
+        choices: choices.map(c => ({ id: c.id, title: c.title }))
+      };
+    });
+
+    res.json(rounds);
+  } catch (err) {
+    res.status(500).json({ error: "Game Setup Error" });
+  }
+});
+
+// --- 📈 FIXED SPOTIFY TOP STREAMED ROUTE ---
+
 app.get('/api/spotify/top-streamed', async (req, res) => {
   try {
-    console.log("Starting Spotify Fetch...");
     const token = await getSpotifyToken();
-    if (!token) return res.status(500).json({ error: "Auth failed - check logs" });
+    if (!token) return res.status(500).json({ error: "Spotify Auth Failed" });
 
-    // 1. Get Playlist
+    // 1. Get Global Top 50 Playlist
     const playlistRes = await axios.get('https://api.spotify.com/v1/playlists/37i9dQZEVXbMDoHDwfs2tF', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
     const items = playlistRes.data.tracks?.items || [];
-    const artistIds = [...new Set(items.map(i => i.track?.artists[0]?.id).filter(id => !!id))].slice(0, 15);
+    const artistIds = [...new Set(items
+      .map(i => i.track?.artists?.[0]?.id)
+      .filter(id => !!id)
+    )].slice(0, 15);
 
     if (artistIds.length === 0) return res.json([]);
 
-    // 2. Get Artist Details (THE FIXED LINE)
+    // 2. Get Artist Details (FIXED Template Literal)
     const artistsRes = await axios.get(`https://api.spotify.com/v1/artists?ids=${artistIds.join(',')}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -97,29 +144,41 @@ app.get('/api/spotify/top-streamed', async (req, res) => {
 
     res.json(formattedData);
   } catch (err) {
-    console.error("SERVER CRASH LOG:", err.response?.data || err.message);
-    res.status(500).json({ error: "Spotify data failure", debug: err.message });
+    console.error("Spotify Sync Error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to fetch Spotify data" });
   }
 });
 
-// (News, Trending, and Leaderboard routes remain untouched as requested)
+// --- 📰 NEWS & VIDEO ---
+
 app.get('/api/news', async (req, res) => {
   try {
     const response = await axios.get("https://api.rss2json.com/v1/api.json?rss_url=https://www.billboard.com/c/music/feed/");
     res.json(response.data.items || []);
-  } catch (err) { res.status(500).json({ error: "News error" }); }
+  } catch (err) {
+    res.status(500).json({ error: "News Error" });
+  }
 });
 
 app.get('/api/trending', async (req, res) => {
   try {
     const response = await axios.get("https://api.deezer.com/editorial/0/charts");
     res.json(response.data.tracks?.data || []);
-  } catch (err) { res.status(500).json({ error: "Trending error" }); }
+  } catch (err) {
+    res.status(500).json({ error: "Trending Error" });
+  }
 });
 
-app.get('/api/leaderboard', (req, res) => res.json(readLeaderboard()));
+// --- 📈 LEADERBOARD ---
+
+app.get('/api/leaderboard', (req, res) => {
+  res.json(readLeaderboard());
+});
+
 app.post('/api/leaderboard', (req, res) => {
   const { name, score } = req.body;
+  if (!name || score === undefined) return res.status(400).json({ error: "Invalid data" });
+
   const leaderboard = readLeaderboard();
   leaderboard.push({ name, score, date: new Date().toLocaleDateString() });
   const sorted = leaderboard.sort((a, b) => b.score - a.score).slice(0, 10);
@@ -127,5 +186,8 @@ app.post('/api/leaderboard', (req, res) => {
   res.json(sorted);
 });
 
+// --- 🚀 SERVER LAUNCH ---
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`VECTFLIX Peak Server running on port ${PORT}`);
+});
