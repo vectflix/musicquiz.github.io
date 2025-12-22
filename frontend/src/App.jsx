@@ -108,6 +108,15 @@ export default function App() {
     setIsFetchingArtists(false);
   };
 
+  const handleAnswer = (wasCorrect) => {
+    if (wasCorrect) setScore(score + 1);
+    if (roundIndex < 9) {
+      setRoundIndex(prev => prev + 1);
+    } else { 
+      setView('results'); 
+      submitScore(); // <--- ADD THIS LINE HERE
+    }
+  };
   const startGameSetup = async (a) => {
     setIsFetchingArtists(true);
     setSelectedArtist(a.name);
@@ -115,6 +124,26 @@ export default function App() {
     sessionStorage.setItem('v_name', a.name);
     sessionStorage.setItem('v_img', a.picture_medium);
     try {
+      // --- ADD THIS AROUND LINE 118 ---
+  const submitScore = async () => {
+    if (!username) return;
+    try {
+      // Sends the real username and score to your Render server
+      await axios.post(`${API_URL}/api/leaderboard`, { name: username, score: score });
+      fetchLeaderboard(); // Refresh the list immediately
+    } catch (e) { 
+      console.error("Score submission failed"); 
+    }
+  };
+
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/leaderboard`);
+      setLeaderboard(res.data); // Updates the 'leaderboard' state with real data
+    } catch (e) { 
+      console.error("Failed to fetch leaderboard"); 
+    }
+  };
       const res = await axios.get(`${API_URL}/api/game/setup/${a.id}`);
       setAllRounds(res.data);
       setScore(0);
@@ -155,6 +184,22 @@ export default function App() {
       backgroundSize: 'cover',
       backgroundPosition: 'center'
     }}>
+      {view === 'ranking' && (
+    <div style={{...styles.glassCardResults, backdropFilter:'blur(15px)'}}>
+      <h2 style={{color:'#E50914'}}>GLOBAL RANKINGS</h2>
+      <AdSlot id="4888078097" />
+      
+      {/* This now maps the REAL data from your server */}
+      {leaderboard.map((r, i) => (
+        <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'15px 0', borderBottom:'1px solid #222'}}>
+          <span>{i + 1}. {r.name}</span>
+          <span style={{color:'#E50914', fontWeight:'bold'}}>{r.score}/10</span>
+        </div>
+      ))}
+      
+      <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
+    </div>
+  )}
       <div style={{...styles.container, maxWidth:'900px'}}>
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
