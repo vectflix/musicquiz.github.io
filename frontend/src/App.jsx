@@ -10,7 +10,12 @@ const LEGAL_TEXT = {
 };
 
 const AdSlot = ({ id }) => {
-  useEffect(() => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {} }, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+    }
+  }, []);
+
   return (
     <div style={styles.adSlot}>
       <p style={{fontSize:'0.6rem', color:'#444', marginBottom:'8px'}}>ADVERTISEMENT</p>
@@ -34,13 +39,24 @@ export default function App() {
   const [roundIndex, setRoundIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [countdown, setCountdown] = useState(0);
-  const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('v_name') || '');
-  const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('v_img') || '');
-  const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
+  const [selectedArtist, setSelectedArtist] = useState('');
+  const [selectedArtistImg, setSelectedArtistImg] = useState('');
+  const [username, setUsername] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [tempName, setTempName] = useState('');
   const [leaderboard, setLeaderboard] = useState([]);
   const [isFetchingArtists, setIsFetchingArtists] = useState(false);
+
+  // Load localStorage/sessionStorage
+  useEffect(() => {
+    const savedUser = localStorage.getItem('vectflix_user');
+    const savedArtist = sessionStorage.getItem('v_name');
+    const savedImg = sessionStorage.getItem('v_img');
+
+    if (savedUser) { setUsername(savedUser); setIsLoggedIn(true); }
+    if (savedArtist) setSelectedArtist(savedArtist);
+    if (savedImg) setSelectedArtistImg(savedImg);
+  }, []);
 
   // Preload audio
   useEffect(() => {
@@ -67,11 +83,11 @@ export default function App() {
 
   // Debounced search
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
+    const delay = setTimeout(() => {
       if (searchTerm.trim().length > 1) searchGlobalArtists(searchTerm);
       else if (searchTerm.trim().length === 0) fetchTopArtists();
     }, 500);
-    return () => clearTimeout(delayDebounceFn);
+    return () => clearTimeout(delay);
   }, [searchTerm]);
 
   const fetchTopArtists = async () => {
@@ -87,7 +103,7 @@ export default function App() {
     setIsFetchingArtists(true);
     try {
       const res = await axios.get(`${API_URL}/api/search/artists?q=${encodeURIComponent(query)}`);
-      setArtists(res.data.filter(item => (item.type==='artist'||!item.type) && item.name && item.picture_medium));
+      setArtists(res.data.filter(a => (a.type==='artist'||!a.type) && a.name && a.picture_medium));
     } catch (e) { console.error("Search failed"); }
     setIsFetchingArtists(false);
   };
@@ -135,17 +151,23 @@ export default function App() {
   return (
     <div style={{
       ...styles.appWrapper,
-      backgroundImage: selectedArtistImg ? `url(${selectedArtistImg})` : 'linear-gradient(180deg, #000, #111)',
+      backgroundImage: selectedArtistImg ? `url(${selectedArtistImg})` : 'linear-gradient(180deg,#000,#111)',
       backgroundSize: 'cover',
       backgroundPosition: 'center'
     }}>
-      <div style={{...styles.container, maxWidth: '900px'}}>
+      <div style={{...styles.container, maxWidth:'900px'}}>
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={{...styles.glassCardResults, backdropFilter:'blur(15px)'}}>
               <h2 style={{color:'#E50914', letterSpacing:'4px'}}>VECTFLIX</h2>
               <input style={styles.loginInput} placeholder="Username..." value={tempName} onChange={(e)=>setTempName(e.target.value)} />
-              <button style={styles.playBtn} onClick={()=>{ if(tempName){ localStorage.setItem('vectflix_user', tempName); setUsername(tempName); setIsLoggedIn(true); } }}>ENTER</button>
+              <button style={styles.playBtn} onClick={()=>{
+                if(tempName){
+                  localStorage.setItem('vectflix_user', tempName);
+                  setUsername(tempName);
+                  setIsLoggedIn(true);
+                }
+              }}>ENTER</button>
             </div>
           </div>
         )}
@@ -165,7 +187,11 @@ export default function App() {
 
             <div style={{...styles.artistGrid, gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))'}}>
               {artists.length>0 ? artists.map(a=>(
-                <div key={a.id} style={{...styles.artistCard, backdropFilter:'blur(10px)'}} onClick={()=>startGameSetup(a)}>
+                <div key={a.id} style={{...styles.artistCard, backdropFilter:'blur(10px)'}}
+                     onClick={()=>startGameSetup(a)}
+                     onMouseEnter={e=>e.currentTarget.style.transform='scale(1.05)'}
+                     onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+                >
                   <img src={a.picture_medium} style={styles.artistImg} alt={a.name}/>
                   <p style={styles.artistName}>{a.name}</p>
                 </div>
@@ -188,7 +214,7 @@ export default function App() {
             <AdSlot id="4888078097" />
             <a href={`https://music.apple.com/search?term=${encodeURIComponent(selectedArtist)}&at=${APPLE_TOKEN}&ct=vectflix_results`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
             <a href={`https://open.spotify.com/search/${encodeURIComponent(selectedArtist)}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
-            <button style={{...styles.playBtn, background:'#1da1f2', marginTop:'20px'}} onClick={()=>setView('share')}>REVEAL SCORE →</button>
+            <button style={{...styles.playBtn, background:'#1da1f2', marginTop:'20px'}} onClick={()=>{ setView('ranking'); fetchLeaderboard(); }}>SEE GLOBAL RANKING →</button>
           </div>
         )}
 
@@ -222,7 +248,7 @@ const styles = {
   searchInput: { width:'100%', padding:'18px', background:'#111', border:'1px solid #333', borderRadius:'15px', color:'white', fontSize:'1rem', outline:'none', boxSizing:'border-box' },
   loaderLine: { height:'2px', background:'#E50914', width:'30%', position:'absolute', bottom:'0', borderRadius:'2px' },
   artistGrid: { display:'grid', gap:'10px' },
-  artistCard: { textAlign:'center', cursor:'pointer', transition:'0.3s', borderRadius:'20px', padding:'10px', background:'rgba(255,255,255,0.05)', hover:{transform:'scale(1.05)'} },
+  artistCard: { textAlign:'center', cursor:'pointer', transition:'0.3s', borderRadius:'20px', padding:'10px', background:'rgba(255,255,255,0.05)' },
   artistImg: { width:'100%', borderRadius:'50%', border:'2px solid #222' },
   artistName: { fontSize:'0.7rem', marginTop:'5px', fontWeight:'bold' },
   glassCardResults: { background:'rgba(0,0,0,0.6)', padding:'40px 20px', borderRadius:'35px', textAlign:'center', border:'1px solid rgba(255,255,255,0.1)' },
@@ -234,4 +260,7 @@ const styles = {
   adPlaceholder: { minHeight:'120px', background:'rgba(255,255,255,0.02)', borderRadius:'20px' },
   loginOverlay: { position:'fixed', inset:0, background:'#000', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' },
   loginInput: { width:'100%', padding:'18px', background:'#222', border:'1px solid #E50914', borderRadius:'10px', color:'white', textAlign:'center', margin:'20px 0' },
+  legalSection: { marginTop:'40px', borderTop:'1px solid #222', paddingTop:'20px' },
+  legalHeading: { fontSize:'0.7rem', textTransform:'uppercase', color:'#E50914', marginBottom:'5px' },
+  legalBody: { fontSize:'0.6rem', marginBottom:'15px', opacity:0.5 },
 };
