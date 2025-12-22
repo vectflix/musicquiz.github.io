@@ -46,6 +46,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
+  // UPDATED: Fetches News and Videos from your Render Proxy
   const fetchEverythingNews = async () => {
     try {
       const vRes = await fetch(`${API_URL}/api/trending`);
@@ -161,20 +162,16 @@ export default function App() {
     <div style={styles.appWrapper}>
       <div style={styles.container}>
         
-        {/* --- POPUP VIDEO PLAYER --- */}
         {activeVideo && (
           <div style={styles.modalOverlay} onClick={() => setActiveVideo(null)}>
             <div style={styles.videoModal} onClick={(e) => e.stopPropagation()}>
               <button style={styles.closeModal} onClick={() => setActiveVideo(null)}>✕</button>
               <div style={styles.videoFrame}>
-                <video src={activeVideo.preview} controls autoPlay style={{width: '100%', height: '100%', borderRadius: '15px', background: '#000'}} />
+                <video src={activeVideo.preview} controls autoPlay style={{width: '100%', height: '100%', borderRadius: '15px'}} />
               </div>
               <div style={{padding: '20px'}}>
                 <h3 style={{color: '#fff', margin: '0'}}>{activeVideo.title}</h3>
-                <p style={{color: '#E50914', fontWeight: 'bold', fontSize: '0.9rem'}}>{activeVideo.artist?.name}</p>
-                <div style={{marginTop: '15px', display: 'flex', gap: '10px'}}>
-                   <button style={{...styles.choiceBtn, padding: '8px 15px', fontSize: '0.7rem'}} onClick={() => window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(activeVideo.artist?.name + " " + activeVideo.title)}`, '_blank')}>Watch Full on YouTube</button>
-                </div>
+                <p style={{color: '#E50914', fontWeight: 'bold'}}>{activeVideo.artist?.name}</p>
               </div>
             </div>
           </div>
@@ -210,10 +207,9 @@ export default function App() {
                   {realNews.map((article, i) => (
                     <a key={i} href={article.link} target="_blank" rel="noreferrer" style={{textDecoration: 'none'}}>
                       <div style={styles.newsCard}>
-                        {/* FIX: objectFit cover for consistent scaling */}
-                        <img src={article.thumbnail || "https://images.unsplash.com/photo-1514525253361-bee8a18744ad?w=400"} style={{...styles.newsImg, objectFit: 'cover'}} alt="news" />
+                        <img src={article.thumbnail || "https://images.unsplash.com/photo-1514525253361-bee8a18744ad?w=400"} style={styles.newsImg} alt="news" />
                         <div style={styles.newsInfo}>
-                          <h4 style={{margin: '5px 0', color: '#fff', fontSize: '0.9rem', lineHeight: '1.3'}}>{article.title}</h4>
+                          <h4 style={{margin: '5px 0', color: '#fff', fontSize: '0.9rem'}}>{article.title}</h4>
                         </div>
                       </div>
                     </a>
@@ -229,11 +225,10 @@ export default function App() {
                    {newsData.map((vid, i) => (
                      <div key={i} style={styles.videoCard} onClick={() => setActiveVideo(vid)}>
                        <div style={styles.videoWrapper}>
-                         {/* FIX: objectFit cover for consistent scaling */}
-                         <img src={vid.album?.cover_big || vid.cover_big} style={{...styles.videoThumb, objectFit: 'cover'}} alt="video" />
+                         <img src={vid.album?.cover_big || vid.cover_big} style={styles.videoThumb} alt="video" />
                          <div style={styles.playOverlay}>▶</div>
                        </div>
-                       <h4 style={{marginTop: '10px', fontSize: '0.9rem'}}>{vid.title}</h4>
+                       <h4 style={{marginTop: '10px'}}>{vid.title}</h4>
                        <p style={{fontSize: '0.8rem', opacity: 0.5}}>{vid.artist?.name}</p>
                      </div>
                    ))}
@@ -251,7 +246,7 @@ export default function App() {
                 <div style={styles.artistGrid}>
                   {artists.map(a => (
                     <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                      <img src={a.picture_medium} style={{...styles.artistImg, objectFit: 'cover'}} alt={a.name} />
+                      <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
                       <p style={styles.artistName}>{a.name}</p>
                     </div>
                   ))}
@@ -272,7 +267,7 @@ export default function App() {
 
         {view === 'ready' && (
           <div style={styles.glassCardResults}>
-            <img src={selectedArtistImg} style={{...styles.resultsArtistImg, objectFit: 'cover'}} alt="artist" />
+            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
             <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
             {countdown > 0 ? (
               <div style={styles.countdownBox}>
