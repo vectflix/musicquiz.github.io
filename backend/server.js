@@ -9,7 +9,8 @@ app.use(cors());
 app.use(express.json());
 
 // --- CONFIG ---
-const LASTFM_KEY = process.env.LASTFM_API_KEY; 
+// Hardcoding your key here as requested to ensure "Peak" stability
+const LASTFM_KEY = '982e349c8a6d19ddeb9c5244939130ec'; 
 const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard.json');
 
 // Helper to handle Leaderboard Data
