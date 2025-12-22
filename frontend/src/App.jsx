@@ -11,55 +11,153 @@ const LEGAL_TEXT = {
   cookies: "Cookies Policy: VECTFLIX utilizes essential cookies and local storage technologies to ensure the platform operates at peak performance. These cookies are used to cache game states, preserve your high scores, and optimize audio buffering speeds. Additionally, we integrate Google AdSense, which may utilize non-personalized cookies to serve relevant advertisements. These ads allow us to keep the VECTFLIX engine free for all users. By continuing to use the platform, you consent to these high-speed data caching technologies."
 };
 
+const AdSlot = ({ id }) => {
+  useEffect(() => {
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+  }, []);
+  return (
+    <div style={styles.adSlot}>
+      <p style={{fontSize: '0.6rem', color: '#444', marginBottom: '8px'}}>ADVERTISEMENT</p>
+      <div style={styles.adPlaceholder}>
+        <ins className="adsbygoogle" style={{ display: 'block' }} data-ad-client="ca-pub-6249624506404198" data-ad-slot={id} data-ad-format="auto" data-full-width-responsive="true"></ins>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
+  // PEAK RESPONSIVE CHECK
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [view, setView] = useState('home'); 
   const [appMode, setAppMode] = useState('game'); 
+  const [isFetchingArtists, setIsFetchingArtists] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
   const [newsData, setNewsData] = useState([]); 
+  const [allRounds, setAllRounds] = useState([]);
+  const [roundIndex, setRoundIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [countdown, setCountdown] = useState(0);
   const [leaderboard, setLeaderboard] = useState([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
+  
+  const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('v_name') || '');
+  const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('v_img') || '');
+  
   const [username, setUsername] = useState(localStorage.getItem('vectflix_user') || '');
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
+  const [tempName, setTempName] = useState('');
 
-  // 1. POPULATE HOME PAGE ON LOAD
+  const fetchMusicNews = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/news`); 
+      const data = await res.json();
+      setNewsData(data || []);
+    } catch (e) { console.error("Billboard sync failed"); }
+  };
+
   useEffect(() => {
-    // Fetch Top Artists so Home Page is not empty
-    fetch(`${API_URL}/api/spotify/top-streamed`)
-      .then(res => res.json())
-      .then(data => {
-        setArtists(data.map(a => ({
-          id: a.name,
-          name: a.name,
-          picture_medium: a.image || 'https://via.placeholder.com/150'
-        })));
-      })
-      .catch(e => console.error("Warming up server..."));
+    if (appMode === 'news') fetchMusicNews();
+  }, [appMode]);
 
-    fetch(`${API_URL}/api/leaderboard`)
-      .then(res => res.json())
-      .then(data => setLeaderboard(data));
-  }, []);
+  useEffect(() => {
+    if ((view === 'game' || view === 'ready') && allRounds.length > 0) {
+      for (let i = 0; i <= 3; i++) {
+        const targetRound = allRounds[roundIndex + i];
+        if (targetRound && targetRound.preview) {
+          const audioPreload = new Audio();
+          audioPreload.src = targetRound.preview;
+          audioPreload.preload = "auto";
+        }
+      }
+    }
+  }, [view, roundIndex, allRounds]);
 
-  // 2. SEARCH LOGIC
+  useEffect(() => {
+    let timer;
+    if (view === 'ready' && countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [view, countdown]);
+
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      if (searchTerm.trim().length > 1) {
-        fetch(`${API_URL}/api/search/artists?q=${encodeURIComponent(searchTerm)}`)
-          .then(res => res.json())
-          .then(data => setArtists(data));
-      }
+      if (searchTerm.trim().length > 1) searchGlobalArtists(searchTerm);
+      else if (searchTerm.trim().length === 0) fetchTopArtists();
     }, 500); 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
-  // 3. BILLBOARD NEWS (NO THUMBNAILS)
-  useEffect(() => {
-    if (appMode === 'news' && newsData.length === 0) {
-      fetch(`${API_URL}/api/news`)
-        .then(res => res.json())
-        .then(data => setNewsData(data));
-    }
-  }, [appMode]);
+  const fetchTopArtists = async () => {
+    setIsFetchingArtists(true);
+    try {
+      const res = await fetch(`${API_URL}/api/artists`);
+      const data = await res.json();
+      setArtists(data.filter(a => a.name && a.picture_medium));
+    } catch (e) { console.error("Server warming up..."); }
+    setIsFetchingArtists(false);
+  };
+
+  const searchGlobalArtists = async (query) => {
+    setIsFetchingArtists(true);
+    try {
+      const res = await fetch(`${API_URL}/api/search/artists?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setArtists(data.filter(item => (item.type === 'artist' || !item.type) && item.name && item.picture_medium));
+    } catch (e) { console.error("Search failed"); }
+    setIsFetchingArtists(false);
+  };
+
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/leaderboard`);
+      const data = await res.json();
+      setLeaderboard(data);
+    } catch (e) { console.error("Leaderboard failed"); }
+  };
+
+  const submitScore = async () => {
+    if (!username) return;
+    try {
+      await fetch(`${API_URL}/api/leaderboard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: username, score: score })
+      });
+      fetchLeaderboard();
+    } catch (e) { console.error("Score submission failed"); }
+  };
+
+  const startGameSetup = async (a) => {
+    setIsFetchingArtists(true);
+    setSelectedArtist(a.name);
+    setSelectedArtistImg(a.picture_medium);
+    sessionStorage.setItem('v_name', a.name);
+    sessionStorage.setItem('v_img', a.picture_medium);
+    try {
+      const res = await fetch(`${API_URL}/api/game/setup/${a.id}`);
+      const data = await res.json();
+      setAllRounds(data);
+      setScore(0);
+      setRoundIndex(0);
+      setView('ready');
+      setCountdown(5); 
+    } catch (err) { alert("Artist not available for quiz. Try another!"); }
+    setIsFetchingArtists(false);
+  }
+
+  const handleAnswer = (wasCorrect) => {
+    if (wasCorrect) setScore(prev => prev + 1);
+    if (roundIndex < 9) setRoundIndex(prev => prev + 1);
+    else { setView('results'); submitScore(); }
+  };
 
   const handleHomeReturn = () => { setView('home'); setSearchTerm(''); setAppMode('game'); };
 
@@ -67,18 +165,18 @@ export default function App() {
     <div style={styles.appWrapper}>
       <div style={styles.container}>
         
-        {/* PEAK HEADER */}
-        <header style={styles.header}>
-          <h1 style={styles.logo} onClick={handleHomeReturn}>VECTFLIX</h1>
-          <div style={styles.searchContainer}>
-            <input 
-              type="text" 
-              placeholder="Search Artists..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              style={styles.searchInput} 
-            />
+        {!isLoggedIn && (
+          <div style={styles.loginOverlay}>
+            <div style={styles.glassCardResults}>
+              <h2 style={{color: '#E50914', letterSpacing: '4px'}}>VECTFLIX</h2>
+              <input style={styles.loginInput} placeholder="Username..." value={tempName} onChange={(e) => setTempName(e.target.value)} />
+              <button style={styles.playBtn} onClick={() => {if(tempName){localStorage.setItem('vectflix_user', tempName); setUsername(tempName); setIsLoggedIn(true);}}}>ENTER</button>
+            </div>
           </div>
+        )}
+
+        <header style={styles.header} onClick={handleHomeReturn}>
+          <h1 style={styles.logo}>VECTFLIX</h1>
           {isLoggedIn && <div style={styles.userBadge}>👤 {username}</div>}
         </header>
 
@@ -90,30 +188,38 @@ export default function App() {
             </div>
 
             {appMode === 'news' ? (
-              <div style={styles.newsSection}>
-                <h2 style={styles.heroText}>Billboard <span style={{color: '#E50914'}}>Peak News</span></h2>
-                <div style={styles.newsList}>
-                  {newsData.map((item, index) => (
-                    <div key={index} style={{padding: '15px 0', borderBottom: '1px solid #333'}}>
-                      {/* PEAK: STRICTLY NO THUMBNAILS */}
-                      <h4 style={{color: '#fff', margin: '0 0 5px 0'}}>{item.title}</h4>
-                      <p style={{fontSize: '0.75rem', opacity: 0.5}}>{item.pubDate}</p>
+              <div style={{paddingBottom: '40px'}}>
+                <h2 style={styles.heroText}>Billboard <span style={{color: '#E50914'}}>Headlines</span></h2>
+                <div style={{ ...styles.newsGrid, ...(isMobile ? styles.newsGridMobile : {}) }}>
+                  {newsData.length > 0 ? newsData.map((item, index) => (
+                    <div key={index} style={{...styles.newsCard, ...(isMobile ? styles.newsCardMobile : {}), padding: '20px', display: 'block'}}>
+                      <div style={styles.newsInfo}>
+                        <span style={styles.newsTag}>BILLBOARD UPDATE</span>
+                        <h4 style={{margin: '10px 0', color: '#fff', fontSize: '1.1rem', lineHeight: '1.4'}}>{item.title}</h4>
+                        <a href={item.link} target="_blank" rel="noreferrer" style={{color: '#E50914', fontSize: '0.8rem', textDecoration: 'none', fontWeight: 'bold'}}>READ ARTICLE →</a>
+                      </div>
                     </div>
-                  ))}
+                  )) : <p style={{opacity: 0.5, textAlign: 'center'}}>Syncing latest music news...</p>}
                 </div>
               </div>
             ) : (
-              <div style={styles.artistGrid}>
-                {artists.map((a, i) => (
-                  <div key={i} style={styles.artistCard} onClick={() => alert("Setting up " + a.name)}>
-                    <img src={a.picture_medium} style={styles.artistImg} alt="" />
-                    <p style={styles.artistName}>{a.name}</p>
-                  </div>
-                ))}
-              </div>
+              <>
+                <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
+                <div style={styles.searchContainer}>
+                  <input type="text" placeholder="Search global artists (e.g. Drake)..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
+                  {isFetchingArtists && <div style={styles.loaderLine}></div>}
+                </div>
+                <div style={{ ...styles.artistGrid, ...(isMobile ? styles.artistGridMobile : {}) }}>
+                  {artists.map(a => (
+                    <div key={a.id} style={{ ...styles.artistCard, ...(isMobile ? styles.artistCardMobile : {}) }} onClick={() => startGameSetup(a)}>
+                      <img src={a.picture_medium} style={{ ...styles.artistImg, ...(isMobile ? styles.artistImgMobile : {}) }} alt={a.name} />
+                      <p style={{ ...styles.artistName, ...(isMobile ? styles.artistNameMobile : {}) }}>{a.name}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
 
-            {/* PEAK FOOTER CONTENT (FROM PREVIOUS) */}
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
@@ -127,14 +233,87 @@ export default function App() {
           </main>
         )}
 
-        {/* FOOTER BAR */}
-        <footer style={styles.footer}>
-          <div style={{display: 'flex', gap: '20px', justifyContent: 'center', marginBottom: '10px'}}>
-             <span style={styles.instaLink}>🍪 Cookies</span> | 
-             <span style={styles.instaLink}>👤 My Account</span> | 
-             <span style={styles.instaLink}>📄 Terms</span>
+        {view === 'ready' && (
+          <div style={styles.glassCardResults}>
+            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
+            <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
+            {countdown > 0 ? (
+              <div style={styles.countdownBox}>
+                <p style={{fontSize: '0.7rem', opacity: 0.5}}>READYING TRACKS...</p>
+                <h1 style={{fontSize: '3.5rem', color: '#E50914', fontWeight: '900'}}>{countdown}</h1>
+              </div>
+            ) : (
+              <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
+            )}
+            <p style={{fontSize: '0.6rem', opacity: 0.3, marginTop: '10px'}}>Pre-loading audio for lag-free play</p>
           </div>
-          <p style={{fontSize: '0.6rem', opacity: 0.4}}>VECTFLIX Peak Audio Engine © 2025</p>
+        )}
+
+        {view === 'game' && allRounds[roundIndex] && (
+          <div style={styles.gameCard}>
+            <audio autoPlay src={allRounds[roundIndex].preview} />
+            <div style={styles.progressBar}><div style={{...styles.progressFill, width: `${(roundIndex + 1) * 10}%`}}></div></div>
+            <p style={{opacity: 0.5, marginBottom: '20px'}}>ROUND {roundIndex + 1}/10</p>
+            <div style={styles.choicesGrid}>
+              {allRounds[roundIndex].choices.map(c => (
+                <button key={c.id} style={styles.choiceBtn} onClick={() => handleAnswer(c.id === allRounds[roundIndex].correctId)}>{c.title}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {view === 'results' && (
+          <div style={styles.glassCardResults}>
+             <div style={styles.statusDot}></div>
+             <p style={{letterSpacing: '3px', fontSize: '0.7rem', opacity: 0.5}}>GAME ANALYZED</p>
+             <div style={{marginTop: '20px', padding: '25px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '1px solid #222'}}>
+               <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
+               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                 <a href={`https://music.apple.com/search?term=${encodeURIComponent(selectedArtist)}&at=${APPLE_TOKEN}&ct=vectflix_results`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
+                 <a href={`https://open.spotify.com/search/${encodeURIComponent(selectedArtist)}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
+               </div>
+             </div>
+             <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px'}} onClick={() => setView('share')}>REVEAL SCORE →</button>
+          </div>
+        )}
+
+        {view === 'share' && (
+          <div style={{textAlign: 'center'}}>
+            <div style={styles.shareCard}>
+              <div style={{color: '#E50914', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '6px', marginBottom: '35px'}}>VECTFLIX</div>
+              <img src={selectedArtistImg} style={{width: '130px', height: '130px', borderRadius: '50%', border: '5px solid #E50914', objectFit: 'cover'}} alt="artist" />
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center', marginTop: '20px'}}>
+                <h2 style={{margin: '0', fontSize: '1.8rem', color: '#fff', fontWeight: '900'}}>{selectedArtist}</h2>
+                <div style={styles.verifiedBadge}>✓</div>
+              </div>
+              <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
+            </div>
+            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => { setView('ranking'); fetchLeaderboard(); }}>SEE GLOBAL RANKING</button>
+            <button style={{...styles.playBtn, background: '#222', marginTop: '10px'}} onClick={handleHomeReturn}>HOME</button>
+          </div>
+        )}
+
+        {view === 'ranking' && (
+          <div style={styles.glassCardResults}>
+            <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL RANKINGS</h2>
+            <AdSlot id="4888078097" /> 
+            <div style={{textAlign: 'left', marginBottom: '30px'}}>
+              {leaderboard.map((r, i) => (
+                <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #222'}}>
+                  <span>{i+1}. {r.name}</span>
+                  <span style={{color: '#E50914', fontWeight: 'bold'}}>{r.score}/10</span>
+                </div>
+              ))}
+            </div>
+            <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
+          </div>
+        )}
+
+        <footer style={styles.footer}>
+          <a href="/about.html" style={styles.instaLink}>About</a> | 
+          <a href="/privacy-policy.html" style={styles.instaLink}>Privacy Policy</a> | 
+          <a href="/terms.html" style={styles.instaLink}>Terms</a> | 
+          <a href="/affiliate-disclosure.html" style={styles.instaLink}>Affiliate Disclosure</a>
         </footer>
       </div>
     </div>
