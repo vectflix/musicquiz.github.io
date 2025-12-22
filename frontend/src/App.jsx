@@ -39,6 +39,7 @@ export default function App() {
   const [countdown, setCountdown] = useState(0);
   const [leaderboard, setLeaderboard] = useState([]);
   const [activeVideo, setActiveVideo] = useState(null); 
+  const [activeLegal, setActiveLegal] = useState(null); // Added to make legal links work
   
   const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('v_name') || '');
   const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('v_img') || '');
@@ -46,13 +47,11 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // UPDATED: Fetches News and Videos from your Render Proxy
   const fetchEverythingNews = async () => {
     try {
       const vRes = await fetch(`${API_URL}/api/trending`);
       const vData = await vRes.json();
       setNewsData(vData);
-
       const nRes = await fetch(`${API_URL}/api/news`);
       const nData = await nRes.json();
       setRealNews(nData);
@@ -156,12 +155,13 @@ export default function App() {
     else { setView('results'); submitScore(); }
   };
 
-  const handleHomeReturn = () => { setView('home'); setSearchTerm(''); setAppMode('game'); setActiveVideo(null); };
+  const handleHomeReturn = () => { setView('home'); setSearchTerm(''); setAppMode('game'); setActiveVideo(null); setActiveLegal(null); };
 
   return (
     <div style={styles.appWrapper}>
       <div style={styles.container}>
         
+        {/* VIDEO PLAYER MODAL WITH PLATFORM BUTTONS */}
         {activeVideo && (
           <div style={styles.modalOverlay} onClick={() => setActiveVideo(null)}>
             <div style={styles.videoModal} onClick={(e) => e.stopPropagation()}>
@@ -172,7 +172,22 @@ export default function App() {
               <div style={{padding: '20px'}}>
                 <h3 style={{color: '#fff', margin: '0'}}>{activeVideo.title}</h3>
                 <p style={{color: '#E50914', fontWeight: 'bold'}}>{activeVideo.artist?.name}</p>
+                <div style={{display: 'flex', gap: '10px', marginTop: '15px'}}>
+                   <button onClick={() => window.open(`https://music.apple.com/search?term=${encodeURIComponent(activeVideo.artist?.name)}`)} style={{...styles.choiceBtn, background: '#fa243c', padding: '5px 10px', fontSize: '0.7rem'}}>APPLE MUSIC</button>
+                   <button onClick={() => window.open(`https://open.spotify.com/search/${encodeURIComponent(activeVideo.artist?.name)}`)} style={{...styles.choiceBtn, background: '#1DB954', padding: '5px 10px', fontSize: '0.7rem'}}>SPOTIFY</button>
+                </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* LEGAL MODAL FIX */}
+        {activeLegal && (
+          <div style={styles.modalOverlay} onClick={() => setActiveLegal(null)}>
+            <div style={{...styles.glassCardResults, maxWidth: '500px', margin: '20px'}}>
+              <h3 style={{color: '#E50914', marginBottom: '15px'}}>{activeLegal.title}</h3>
+              <p style={{fontSize: '0.9rem', lineHeight: '1.6', color: '#ccc'}}>{activeLegal.content}</p>
+              <button style={{...styles.playBtn, marginTop: '20px'}} onClick={() => setActiveLegal(null)}>CLOSE</button>
             </div>
           </div>
         )}
@@ -207,7 +222,7 @@ export default function App() {
                   {realNews.map((article, i) => (
                     <a key={i} href={article.link} target="_blank" rel="noreferrer" style={{textDecoration: 'none'}}>
                       <div style={styles.newsCard}>
-                        <img src={article.thumbnail || "https://images.unsplash.com/photo-1514525253361-bee8a18744ad?w=400"} style={styles.newsImg} alt="news" />
+                        <img src={article.thumbnail || "https://images.unsplash.com/photo-1514525253361-bee8a18744ad?w=400"} style={{...styles.newsImg, objectFit: 'cover'}} alt="news" />
                         <div style={styles.newsInfo}>
                           <h4 style={{margin: '5px 0', color: '#fff', fontSize: '0.9rem'}}>{article.title}</h4>
                         </div>
@@ -225,7 +240,7 @@ export default function App() {
                    {newsData.map((vid, i) => (
                      <div key={i} style={styles.videoCard} onClick={() => setActiveVideo(vid)}>
                        <div style={styles.videoWrapper}>
-                         <img src={vid.album?.cover_big || vid.cover_big} style={styles.videoThumb} alt="video" />
+                         <img src={vid.album?.cover_big || vid.cover_big} style={{...styles.videoThumb, objectFit: 'cover'}} alt="video" />
                          <div style={styles.playOverlay}>▶</div>
                        </div>
                        <h4 style={{marginTop: '10px'}}>{vid.title}</h4>
@@ -245,9 +260,15 @@ export default function App() {
                 </div>
                 <div style={styles.artistGrid}>
                   {artists.map(a => (
-                    <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                      <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                      <p style={styles.artistName}>{a.name}</p>
+                    <div key={a.id} style={styles.artistCard}>
+                      <div onClick={() => startGameSetup(a)}>
+                        <img src={a.picture_medium} style={{...styles.artistImg, objectFit: 'cover'}} alt={a.name} />
+                        <p style={styles.artistName}>{a.name}</p>
+                      </div>
+                      <div style={{display: 'flex', justifyContent: 'center', gap: '5px', paddingBottom: '10px'}}>
+                         <button onClick={() => window.open(`https://music.apple.com/search?term=${encodeURIComponent(a.name)}`)} style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem'}}>🍎</button>
+                         <button onClick={() => window.open(`https://open.spotify.com/search/${encodeURIComponent(a.name)}`)} style={{background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem'}}>🎧</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -267,7 +288,7 @@ export default function App() {
 
         {view === 'ready' && (
           <div style={styles.glassCardResults}>
-            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
+            <img src={selectedArtistImg} style={{...styles.resultsArtistImg, objectFit: 'cover'}} alt="artist" />
             <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
             {countdown > 0 ? (
               <div style={styles.countdownBox}>
@@ -327,10 +348,10 @@ export default function App() {
         )}
 
         <footer style={styles.footer}>
-          <a href="#" style={styles.instaLink}>About</a> | 
-          <a href="#" style={styles.instaLink}>Privacy</a> | 
-          <a href="#" style={styles.instaLink}>Terms</a> | 
-          <a href="#" style={styles.instaLink}>Affiliate</a>
+          <span style={styles.instaLink} onClick={() => setActiveLegal({title: 'About VECTFLIX', content: LEGAL_TEXT.about})}>About</span> | 
+          <span style={styles.instaLink} onClick={() => setActiveLegal({title: 'Privacy Policy', content: LEGAL_TEXT.privacy})}>Privacy</span> | 
+          <span style={styles.instaLink} onClick={() => setActiveLegal({title: 'Cookies Policy', content: LEGAL_TEXT.cookies})}>Cookies</span> | 
+          <span style={styles.instaLink} onClick={() => setActiveLegal({title: 'How to Play', content: LEGAL_TEXT.howToPlay})}>Tutorial</span>
         </footer>
       </div>
     </div>
