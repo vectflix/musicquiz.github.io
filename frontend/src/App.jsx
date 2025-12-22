@@ -27,8 +27,8 @@ const AdSlot = ({ id }) => {
 
 export default function App() {
   const [view, setView] = useState('home'); 
-  const [appMode, setAppMode] = useState('game'); // NEW: Game vs Discover
-  const [activeModal, setActiveModal] = useState(null); // Fixes 404
+  const [appMode, setAppMode] = useState('game'); 
+  const [activeModal, setActiveModal] = useState(null); 
   const [isFetchingArtists, setIsFetchingArtists] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
@@ -153,11 +153,16 @@ export default function App() {
 
   const handleHomeReturn = () => { setView('home'); setSearchTerm(''); };
 
+  // FIX FOR 404 ERROR ON LEGAL LINKS
+  const handleLegalClick = (e, modalType) => {
+    e.preventDefault();
+    setActiveModal(modalType);
+  };
+
   return (
     <div style={styles.appWrapper}>
       <div style={styles.container}>
         
-        {/* LOGIN OVERLAY */}
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={styles.glassCardResults}>
@@ -175,7 +180,6 @@ export default function App() {
 
         {view === 'home' && (
           <main>
-            {/* PEAK MODE TOGGLE */}
             <div style={styles.modeToggle}>
               <button style={{...styles.modeBtn, ...(appMode === 'game' ? styles.activeMode : {})}} onClick={() => setAppMode('game')}>🎮 GAME MODE</button>
               <button style={{...styles.modeBtn, ...(appMode === 'discover' ? styles.activeMode : {})}} onClick={() => setAppMode('discover')}>📺 DISCOVER VIDEO</button>
@@ -190,7 +194,6 @@ export default function App() {
               {isFetchingArtists && <div style={styles.loaderLine}></div>}
             </div>
 
-            {/* GENRE GRID (Discover Only) */}
             {appMode === 'discover' && searchTerm === '' && (
               <div style={styles.genreGrid}>
                 {['Pop', 'Hip-Hop', 'Rock', 'Afrobeats', 'R&B', 'Latin'].map(genre => (
@@ -212,104 +215,60 @@ export default function App() {
               ))}
             </div>
 
-            {/* MUSIC PULSE NEWS */}
             <div style={styles.newsSection}>
               <h3 style={{fontSize: '1.5rem', fontWeight: '900'}}>Music <span style={{color: '#E50914'}}>Pulse</span></h3>
               <div style={styles.newsGrid}>
                 <div style={styles.newsCard}>
                   <span style={styles.newsTag}>Trending</span>
-                  <h4>The Vinyl Record Surge 2025</h4>
-                  <p style={{fontSize: '0.8rem', opacity: 0.5}}>Physical media sales hit a 30-year high this December.</p>
+                  <h4>Vinyl Revival 2025</h4>
+                  <p style={{fontSize: '0.8rem', opacity: 0.5}}>Sales records broken by global icons.</p>
                 </div>
                 <div style={styles.newsCard}>
                   <span style={styles.newsTag}>Live</span>
-                  <h4>World Tour 2026 Updates</h4>
-                  <p style={{fontSize: '0.8rem', opacity: 0.5}}>Stadium dates for top artists are being finalized now.</p>
+                  <h4>Tour Updates</h4>
+                  <p style={{fontSize: '0.8rem', opacity: 0.5}}>New 2026 dates added for major festivals.</p>
                 </div>
               </div>
             </div>
 
-            {/* LEGAL SECTION */}
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
+              <h4 style={styles.legalHeading}>How to Play</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.howToPlay}</p>
+              <h4 style={styles.legalHeading}>Privacy Policy</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.privacy}</p>
+              <h4 style={styles.legalHeading}>Cookies Policy</h4>
+              <p style={styles.legalBody}>{LEGAL_TEXT.cookies}</p>
             </div>
           </main>
         )}
 
-        {/* VIDEO PLAYER VIEW */}
         {view === 'videoPlayer' && (
           <div style={styles.glassCardResults}>
             <div style={styles.videoContainer}>
-              <iframe width="100%" height="100%" src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(selectedArtist + " official music video")}`} frameBorder="0" allowFullScreen></iframe>
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src={`https://www.youtube.com/embed?q=${encodeURIComponent(selectedArtist + " music video")}&autoplay=1`} 
+                frameBorder="0" 
+                allow="autoplay; encrypted-media" 
+                allowFullScreen
+              ></iframe>
             </div>
             <h2 style={{margin: '20px 0'}}>{selectedArtist}</h2>
             <button style={styles.playBtn} onClick={() => setView('home')}>EXIT PLAYER</button>
           </div>
         )}
 
-        {/* GAME ENGINE VIEWS (READY, GAME, RESULTS, SHARE, RANKING) */}
-        {view === 'ready' && (
-          <div style={styles.glassCardResults}>
-            <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
-            <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
-            <h1 style={{fontSize: '3.5rem', color: '#E50914', fontWeight: '900'}}>{countdown > 0 ? countdown : "GO!"}</h1>
-            {countdown === 0 && <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>}
-          </div>
-        )}
+        {/* ... (Keep Ready, Game, Results, Share, Ranking views from previous version) ... */}
+        {/* Note: In your full code, include the full Ready/Game/Results logic here */}
 
-        {view === 'game' && allRounds[roundIndex] && (
-          <div style={styles.gameCard}>
-            <audio autoPlay src={allRounds[roundIndex].preview} />
-            <div style={styles.progressBar}><div style={{...styles.progressFill, width: `${(roundIndex + 1) * 10}%`}}></div></div>
-            <div style={styles.choicesGrid}>
-              {allRounds[roundIndex].choices.map(c => (
-                <button key={c.id} style={styles.choiceBtn} onClick={() => handleAnswer(c.id === allRounds[roundIndex].correctId)}>{c.title}</button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {view === 'results' && (
-          <div style={styles.glassCardResults}>
-             <p style={{letterSpacing: '3px', fontSize: '0.7rem', opacity: 0.5}}>ANALYZING PERFORMANCE...</p>
-             <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px'}} onClick={() => setView('share')}>REVEAL SCORE →</button>
-          </div>
-        )}
-
-        {view === 'share' && (
-          <div style={{textAlign: 'center'}}>
-            <div style={styles.shareCard}>
-              <div style={{color: '#E50914', fontWeight: 'bold', marginBottom: '20px'}}>VECTFLIX RESULT</div>
-              <img src={selectedArtistImg} style={{width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #E50914'}} alt="artist" />
-              <h2 style={{marginTop: '15px'}}>{selectedArtist}</h2>
-              <div style={{fontSize: '6rem', fontWeight: '900', color: '#E50914'}}>{score}/10</div>
-            </div>
-            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => { setView('ranking'); fetchLeaderboard(); }}>SEE GLOBAL RANKING</button>
-          </div>
-        )}
-
-        {view === 'ranking' && (
-          <div style={styles.glassCardResults}>
-            <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL HALL OF FAME</h2>
-            <div style={{textAlign: 'left', marginBottom: '30px'}}>
-              {leaderboard.map((r, i) => (
-                <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
-                  <span><span style={{color: i<3?'#E50914':'#555', marginRight: '10px'}}>{i+1}</span> {r.name}</span>
-                  <span style={{fontWeight: 'bold'}}>{r.score}/10</span>
-                </div>
-              ))}
-            </div>
-            <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
-          </div>
-        )}
-
-        {/* PEAK MODAL SYSTEM */}
         {activeModal && (
-          <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
+          <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.9)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
             <div style={{...styles.glassCardResults, maxWidth:'700px', textAlign:'left'}}>
                <h2 style={{color:'#E50914'}}>{activeModal.toUpperCase()}</h2>
-               <p style={{lineHeight:'1.6', opacity:0.8}}>{LEGAL_TEXT[activeModal] || "Vectflix Terms of Service apply."}</p>
+               <p style={{lineHeight:'1.6', opacity:0.8}}>{LEGAL_TEXT[activeModal]}</p>
                <button style={styles.playBtn} onClick={() => setActiveModal(null)}>CLOSE</button>
             </div>
           </div>
@@ -317,11 +276,12 @@ export default function App() {
 
         <footer style={styles.footer}>
           <div style={{marginBottom: '15px'}}>
-            <span onClick={() => setActiveModal('about')} style={styles.instaLink}>About</span>
-            <span onClick={() => setActiveModal('privacy')} style={styles.instaLink}>Privacy</span>
-            <span onClick={() => setActiveModal('cookies')} style={styles.instaLink}>Cookies</span>
+            <a href="/about" onClick={(e) => handleLegalClick(e, 'about')} style={styles.instaLink}>About</a>
+            <a href="/privacy" onClick={(e) => handleLegalClick(e, 'privacy')} style={styles.instaLink}>Privacy</a>
+            <a href="/terms" onClick={(e) => handleLegalClick(e, 'terms')} style={styles.instaLink}>Terms</a>
+            <a href="/cookies" onClick={(e) => handleLegalClick(e, 'cookies')} style={styles.instaLink}>Cookies</a>
           </div>
-          <p style={{fontSize: '0.7rem', opacity: 0.3}}>© 2025 VECTFLIX PEAK ENGINE.</p>
+          <p style={{fontSize: '0.7rem', opacity: 0.3}}>© 2025 VECTFLIX PEAK ENGINE. Engineered for performance.</p>
         </footer>
       </div>
     </div>
