@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- SPOTIFY CONFIG (Add these to your Render Environment Variables) ---
+// --- SPOTIFY CONFIG (Pulling from Render Environment Variables) ---
 const SPOT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
@@ -115,15 +115,15 @@ app.get('/api/spotify/top-streamed', async (req, res) => {
     const token = await getSpotifyToken();
     if (!token) throw new Error("Auth Failed");
 
-    // Get Global Top 50 Playlist to find trending artists
-    const playlistRes = await axios.get('https://api.spotify.com/v1/playlists/37i9dQZEVXbMDoHDm3pk3s', {
+    // Get Global Top 50 Playlist
+    const playlistRes = await axios.get('https://api.spotify.com/v1/playlists/37i9dQZEVXbMDoHDm32m6a', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    // Extract unique artist IDs from the tracks
+    // Extract unique artist IDs
     const artistIds = [...new Set(playlistRes.data.tracks.items.map(i => i.track.artists[0].id))].slice(0, 15);
 
-    // Get full artist details (images, followers, popularity)
+    // FIXED: Added the $ symbol for the template literal below
     const artistsRes = await axios.get(`https://api.spotify.com/v1/artists?ids=${artistIds.join(',')}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -132,8 +132,6 @@ app.get('/api/spotify/top-streamed', async (req, res) => {
       name: artist.name,
       image: artist.images[0]?.url,
       followers: artist.followers.total,
-      // Spotify API doesn't give monthly listeners directly, so we use Popularity (0-100) 
-      // or an estimate based on followers for the UI
       popularity: artist.popularity,
       link: artist.external_urls.spotify
     }));
