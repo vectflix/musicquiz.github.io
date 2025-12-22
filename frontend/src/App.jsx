@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 
 // --- CONFIGURATION ---
 const API_URL = "https://music-guessing-api-v3.onrender.com"; 
-// Once you get your Apple Token, paste it here:
 const APPLE_TOKEN = "YOUR_TOKEN_HERE"; 
 
 const LEGAL_TEXT = {
@@ -40,6 +39,7 @@ export default function App() {
   const [roundIndex, setRoundIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [countdown, setCountdown] = useState(0);
+  const [leaderboard, setLeaderboard] = useState([]);
   
   const [selectedArtist, setSelectedArtist] = useState(sessionStorage.getItem('v_name') || '');
   const [selectedArtistImg, setSelectedArtistImg] = useState(sessionStorage.getItem('v_img') || '');
@@ -103,6 +103,26 @@ export default function App() {
     setIsFetchingArtists(false);
   };
 
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/leaderboard`);
+      const data = await res.json();
+      setLeaderboard(data);
+    } catch (e) { console.error("Leaderboard failed"); }
+  };
+
+  const submitScore = async () => {
+    if (!username) return;
+    try {
+      await fetch(`${API_URL}/api/leaderboard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: username, score: score })
+      });
+      fetchLeaderboard();
+    } catch (e) { console.error("Score submission failed"); }
+  };
+
   const startGameSetup = async (a) => {
     setIsFetchingArtists(true);
     setSelectedArtist(a.name);
@@ -123,12 +143,12 @@ export default function App() {
   }
 
   const handleAnswer = (wasCorrect) => {
-    const newScore = wasCorrect ? score + 1 : score;
-    if (wasCorrect) setScore(newScore);
+    if (wasCorrect) setScore(prev => prev + 1);
     if (roundIndex < 9) {
       setRoundIndex(prev => prev + 1);
     } else {
       setView('results');
+      submitScore();
     }
   };
 
@@ -136,12 +156,6 @@ export default function App() {
     setView('home');
     setSearchTerm('');
   };
-
-  const rankings = [
-    { user: "VECTFLIX_KING", score: 10, date: "Today" },
-    { user: username || "You", score: score, date: "Just now" },
-    { user: "MusicPro", score: 9, date: "Yesterday" }
-  ];
 
   return (
     <div style={styles.appWrapper}>
@@ -165,7 +179,6 @@ export default function App() {
         {view === 'home' && (
           <main>
             <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
-            <br />
             <div style={styles.searchContainer}>
               <input 
                 type="text" 
@@ -252,7 +265,7 @@ export default function App() {
               </div>
               <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
             </div>
-            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => setView('ranking')}>SEE GLOBAL RANKING</button>
+            <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => { setView('ranking'); fetchLeaderboard(); }}>SEE GLOBAL RANKING</button>
             <button style={{...styles.playBtn, background: '#222', marginTop: '10px'}} onClick={handleHomeReturn}>HOME</button>
           </div>
         )}
@@ -262,12 +275,12 @@ export default function App() {
             <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL RANKINGS</h2>
             <AdSlot id="4888078097" /> 
             <div style={{textAlign: 'left', marginBottom: '30px'}}>
-              {rankings.map((r, i) => (
+              {leaderboard.length > 0 ? leaderboard.map((r, i) => (
                 <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #222'}}>
-                  <span>{i+1}. {r.user}</span>
+                  <span>{i+1}. {r.name}</span>
                   <span style={{color: '#E50914', fontWeight: 'bold'}}>{r.score}/10</span>
                 </div>
-              ))}
+              )) : <p style={{opacity: 0.5}}>No entries yet...</p>}
             </div>
             <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
           </div>
@@ -292,7 +305,7 @@ const styles = {
   userBadge: { background: '#222', padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem' },
   heroText: { fontSize: '2rem', marginBottom: '20px', fontWeight: '900' },
   searchContainer: { marginBottom: '25px', position: 'relative' },
-  searchInput: { width: '100%', padding: '18px', background: '#111', border: '1px solid #333', borderRadius: '15px', color: 'white', fontSize: '1rem', outline: 'none', boxSizing: 'border-box' },
+  searchInput: { width: '100%', padding: '18px', background: '#111', border: '1px solid #333', borderRadius: '15px', color: 'white', fontSize: '1rem', outline:'none', boxSizing:'border-box' },
   loaderLine: { height: '2px', background: '#E50914', width: '30%', position: 'absolute', bottom: '0', borderRadius: '2px' },
   artistGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' },
   artistCard: { textAlign: 'center', cursor: 'pointer' },
