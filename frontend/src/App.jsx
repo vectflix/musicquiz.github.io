@@ -47,18 +47,15 @@ export default function App() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [isFetchingArtists, setIsFetchingArtists] = useState(false);
 
-  // Load localStorage/sessionStorage
   useEffect(() => {
     const savedUser = localStorage.getItem('vectflix_user');
     const savedArtist = sessionStorage.getItem('v_name');
     const savedImg = sessionStorage.getItem('v_img');
-
     if (savedUser) { setUsername(savedUser); setIsLoggedIn(true); }
     if (savedArtist) setSelectedArtist(savedArtist);
     if (savedImg) setSelectedArtistImg(savedImg);
   }, []);
 
-  // Preload audio
   useEffect(() => {
     if ((view === 'game' || view === 'ready') && allRounds.length > 0) {
       for (let i = 0; i <= 3; i++) {
@@ -72,7 +69,6 @@ export default function App() {
     }
   }, [view, roundIndex, allRounds]);
 
-  // Countdown
   useEffect(() => {
     let timer;
     if (view === 'ready' && countdown > 0) {
@@ -81,7 +77,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [view, countdown]);
 
-  // Debounced search
   useEffect(() => {
     const delay = setTimeout(() => {
       if (searchTerm.trim().length > 1) searchGlobalArtists(searchTerm);
@@ -108,62 +103,10 @@ export default function App() {
     setIsFetchingArtists(false);
   };
 
-  const handleAnswer = (wasCorrect) => {
-    if (wasCorrect) setScore(score + 1);
-    if (roundIndex < 9) {
-      setRoundIndex(prev => prev + 1);
-    } else { 
-      setView('results'); 
-      submitScore(); // <--- ADD THIS LINE HERE
-    }
-  };
-  const startGameSetup = async (a) => {
-    setIsFetchingArtists(true);
-    setSelectedArtist(a.name);
-    setSelectedArtistImg(a.picture_medium);
-    sessionStorage.setItem('v_name', a.name);
-    sessionStorage.setItem('v_img', a.picture_medium);
-    try {
-      // --- ADD THIS AROUND LINE 118 ---
   const submitScore = async () => {
     if (!username) return;
     try {
-      // Sends the real username and score to your Render server
       await axios.post(`${API_URL}/api/leaderboard`, { name: username, score: score });
-      fetchLeaderboard(); // Refresh the list immediately
-    } catch (e) { 
-      console.error("Score submission failed"); 
-    }
-  };
-
-  const fetchLeaderboard = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/leaderboard`);
-      setLeaderboard(res.data); // Updates the 'leaderboard' state with real data
-    } catch (e) { 
-      console.error("Failed to fetch leaderboard"); 
-    }
-  };
-      const res = await axios.get(`${API_URL}/api/game/setup/${a.id}`);
-      setAllRounds(res.data);
-      setScore(0);
-      setRoundIndex(0);
-      setView('ready');
-      setCountdown(5);
-    } catch (err) { alert("Artist not available for quiz. Try another!"); }
-    setIsFetchingArtists(false);
-  };
-
-  const handleAnswer = (wasCorrect) => {
-    if (wasCorrect) setScore(score+1);
-    if (roundIndex < 9) setRoundIndex(prev => prev + 1);
-    else { setView('results'); submitScore(); }
-  };
-
-  const submitScore = async () => {
-    if (!username) return;
-    try {
-      await axios.post(`${API_URL}/api/leaderboard`, { name: username, score });
       fetchLeaderboard();
     } catch (e) { console.error("Score submission failed"); }
   };
@@ -175,6 +118,32 @@ export default function App() {
     } catch (e) { console.error("Failed to fetch leaderboard"); }
   };
 
+  const startGameSetup = async (a) => {
+    setIsFetchingArtists(true);
+    setSelectedArtist(a.name);
+    setSelectedArtistImg(a.picture_medium);
+    sessionStorage.setItem('v_name', a.name);
+    sessionStorage.setItem('v_img', a.picture_medium);
+    try {
+      const res = await axios.get(`${API_URL}/api/game/setup/${a.id}`);
+      setAllRounds(res.data);
+      setScore(0);
+      setRoundIndex(0);
+      setView('ready');
+      setCountdown(5);
+    } catch (err) { alert("Artist not available for quiz. Try another!"); }
+    setIsFetchingArtists(false);
+  };
+
+  const handleAnswer = (wasCorrect) => {
+    if (wasCorrect) setScore(score + 1);
+    if (roundIndex < 9) setRoundIndex(prev => prev + 1);
+    else { 
+      setView('results'); 
+      submitScore(); 
+    }
+  };
+
   const handleHomeReturn = () => { setView('home'); setSearchTerm(''); };
 
   return (
@@ -184,22 +153,6 @@ export default function App() {
       backgroundSize: 'cover',
       backgroundPosition: 'center'
     }}>
-      {view === 'ranking' && (
-    <div style={{...styles.glassCardResults, backdropFilter:'blur(15px)'}}>
-      <h2 style={{color:'#E50914'}}>GLOBAL RANKINGS</h2>
-      <AdSlot id="4888078097" />
-      
-      {/* This now maps the REAL data from your server */}
-      {leaderboard.map((r, i) => (
-        <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'15px 0', borderBottom:'1px solid #222'}}>
-          <span>{i + 1}. {r.name}</span>
-          <span style={{color:'#E50914', fontWeight:'bold'}}>{r.score}/10</span>
-        </div>
-      ))}
-      
-      <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
-    </div>
-  )}
       <div style={{...styles.container, maxWidth:'900px'}}>
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
@@ -267,16 +220,15 @@ export default function App() {
           <div style={{...styles.glassCardResults, backdropFilter:'blur(15px)'}}>
             <h2 style={{color:'#E50914'}}>GLOBAL RANKINGS</h2>
             <AdSlot id="4888078097" />
-            {leaderboard.map((r,i)=>(
+            {leaderboard.length > 0 ? leaderboard.slice(0, 10).map((r,i)=>(
               <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'15px 0', borderBottom:'1px solid #222'}}>
                 <span>{i+1}. {r.name}</span>
                 <span style={{color:'#E50914', fontWeight:'bold'}}>{r.score}/10</span>
               </div>
-            ))}
+            )) : <p style={{opacity: 0.5}}>No rankings yet.</p>}
             <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
           </div>
         )}
-
       </div>
     </div>
   );
