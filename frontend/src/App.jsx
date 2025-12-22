@@ -15,17 +15,11 @@ const AdSlot = ({ id }) => {
       try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
     }
   }, []);
-
   return (
     <div style={styles.adSlot}>
       <p style={{fontSize:'0.6rem', color:'#444', marginBottom:'8px'}}>ADVERTISEMENT</p>
       <div style={styles.adPlaceholder}>
-        <ins className="adsbygoogle" 
-             style={{ display: 'block' }} 
-             data-ad-client="ca-pub-6249624506404198" 
-             data-ad-slot={id} 
-             data-ad-format="auto" 
-             data-full-width-responsive="true"></ins>
+        <ins className="adsbygoogle" style={{ display: 'block' }} data-ad-client="ca-pub-6249624506404198" data-ad-slot={id} data-ad-format="auto" data-full-width-responsive="true"></ins>
       </div>
     </div>
   );
@@ -106,7 +100,7 @@ export default function App() {
   const submitScore = async () => {
     if (!username) return;
     try {
-      await axios.post(`${API_URL}/api/leaderboard`, { name: username, score: score });
+      await axios.post(`${API_URL}/api/leaderboard`, { name: username, score });
       fetchLeaderboard();
     } catch (e) { console.error("Score submission failed"); }
   };
@@ -136,23 +130,15 @@ export default function App() {
   };
 
   const handleAnswer = (wasCorrect) => {
-    if (wasCorrect) setScore(score + 1);
+    if (wasCorrect) setScore(score+1);
     if (roundIndex < 9) setRoundIndex(prev => prev + 1);
-    else { 
-      setView('results'); 
-      submitScore(); 
-    }
+    else { setView('results'); submitScore(); }
   };
 
   const handleHomeReturn = () => { setView('home'); setSearchTerm(''); };
 
   return (
-    <div style={{
-      ...styles.appWrapper,
-      backgroundImage: selectedArtistImg ? `url(${selectedArtistImg})` : 'linear-gradient(180deg,#000,#111)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center'
-    }}>
+    <div style={{ ...styles.appWrapper, backgroundImage: selectedArtistImg ? `url(${selectedArtistImg})` : 'linear-gradient(180deg,#000,#111)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
       <div style={{...styles.container, maxWidth:'900px'}}>
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
@@ -182,20 +168,14 @@ export default function App() {
               <input type="text" placeholder="Search global artists..." value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} style={{...styles.searchInput, backdropFilter:'blur(8px)'}}/>
               {isFetchingArtists && <div style={styles.loaderLine}></div>}
             </div>
-
             <div style={{...styles.artistGrid, gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))'}}>
               {artists.length>0 ? artists.map(a=>(
-                <div key={a.id} style={{...styles.artistCard, backdropFilter:'blur(10px)'}}
-                     onClick={()=>startGameSetup(a)}
-                     onMouseEnter={e=>e.currentTarget.style.transform='scale(1.05)'}
-                     onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
-                >
+                <div key={a.id} style={{...styles.artistCard, backdropFilter:'blur(10px)'}} onClick={()=>startGameSetup(a)}>
                   <img src={a.picture_medium} style={styles.artistImg} alt={a.name}/>
                   <p style={styles.artistName}>{a.name}</p>
                 </div>
               )) : !isFetchingArtists && <p style={{gridColumn:'1/-1', textAlign:'center', opacity:0.3}}>No artists found.</p>}
             </div>
-
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
@@ -220,12 +200,12 @@ export default function App() {
           <div style={{...styles.glassCardResults, backdropFilter:'blur(15px)'}}>
             <h2 style={{color:'#E50914'}}>GLOBAL RANKINGS</h2>
             <AdSlot id="4888078097" />
-            {leaderboard.length > 0 ? leaderboard.slice(0, 10).map((r,i)=>(
+            {leaderboard.map((r,i)=>(
               <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'15px 0', borderBottom:'1px solid #222'}}>
                 <span>{i+1}. {r.name}</span>
                 <span style={{color:'#E50914', fontWeight:'bold'}}>{r.score}/10</span>
               </div>
-            )) : <p style={{opacity: 0.5}}>No rankings yet.</p>}
+            ))}
             <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
           </div>
         )}
