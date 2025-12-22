@@ -27,11 +27,11 @@ const AdSlot = ({ id }) => {
 
 export default function App() {
   const [view, setView] = useState('home'); 
-  const [appMode, setAppMode] = useState('game'); // Toggle between 'game' and 'news'
+  const [appMode, setAppMode] = useState('game'); 
   const [isFetchingArtists, setIsFetchingArtists] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
-  const [newsData, setNewsData] = useState([]); // Deezer News State
+  const [newsData, setNewsData] = useState([]); // Billboard News State
   const [allRounds, setAllRounds] = useState([]);
   const [roundIndex, setRoundIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -45,14 +45,16 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // FETCH DEEZER NEWS
+  // FETCH BILLBOARD NEWS (Headline Only Mode)
   const fetchMusicNews = async () => {
     try {
-      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://api.deezer.com/editorial/0/charts')}`);
-      const json = await res.json();
-      const data = JSON.parse(json.contents);
-      setNewsData(data.albums.data || []);
-    } catch (e) { console.error("News fetch failed"); }
+      // Using your Render API or a proxy to fetch billboard headlines
+      const res = await fetch(`${API_URL}/api/news`); 
+      const data = await res.json();
+      setNewsData(data || []);
+    } catch (e) { 
+      console.error("Billboard sync failed"); 
+    }
   };
 
   useEffect(() => {
@@ -182,18 +184,17 @@ export default function App() {
 
             {appMode === 'news' ? (
               <div style={{paddingBottom: '40px'}}>
-                <h2 style={styles.heroText}>Deezer <span style={{color: '#E50914'}}>Charts</span></h2>
+                <h2 style={styles.heroText}>Billboard <span style={{color: '#E50914'}}>Headlines</span></h2>
                 <div style={styles.newsGrid}>
-                  {newsData.map((item, index) => (
-                    <div key={item.id} style={styles.newsCard}>
-                      <img src={item.cover_medium} style={styles.newsImg} alt="news" />
+                  {newsData.length > 0 ? newsData.map((item, index) => (
+                    <div key={index} style={{...styles.newsCard, padding: '20px', display: 'block'}}>
                       <div style={styles.newsInfo}>
-                        <span style={styles.newsTag}>TRENDING #{index + 1}</span>
-                        <h4 style={{margin: '5px 0', color: '#fff'}}>{item.title}</h4>
-                        <p style={{fontSize: '0.8rem', opacity: 0.6}}>by {item.artist.name}</p>
+                        <span style={styles.newsTag}>BILLBOARD UPDATE</span>
+                        <h4 style={{margin: '10px 0', color: '#fff', fontSize: '1.1rem', lineHeight: '1.4'}}>{item.title}</h4>
+                        <a href={item.link} target="_blank" rel="noreferrer" style={{color: '#E50914', fontSize: '0.8rem', textDecoration: 'none', fontWeight: 'bold'}}>READ ARTICLE →</a>
                       </div>
                     </div>
-                  ))}
+                  )) : <p style={{opacity: 0.5, textAlign: 'center'}}>Syncing latest music news...</p>}
                 </div>
               </div>
             ) : (
