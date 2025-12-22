@@ -5,10 +5,10 @@ const API_URL = "https://music-guessing-api-v3.onrender.com";
 const APPLE_TOKEN = "YOUR_TOKEN_HERE"; 
 
 const LEGAL_TEXT = {
-  about: "VECTFLIX is a premium, high-speed music recognition platform engineered by @vecteezy_1 for a global community of audiophiles. Our mission is to provide a seamless, low-latency environment where users can test their musical knowledge against a massive global database in real-time. By leveraging the VECTFLIX Peak Audio Engine, we deliver high-fidelity track previews and instant scoring, bridging the gap between casual listening and competitive gaming through a sleek, minimalist interface.",
-  howToPlay: "To begin your experience, search for any global artist using the integrated search bar. Once an artist is selected, our engine will optimize the audio catalog during a mandatory 5-second buffer to ensure lag-free play. You will face 10 high-intensity rounds where you must identify the correct track title from the audio clip provided. Every correct guess increases your standing. After the final round, you can finalize your score and see where you rank on the Global Hall of Fame.",
-  privacy: "Privacy Policy: Privacy is a core pillar of the VECTFLIX experience. We prioritize user integrity by operating on a (no-data-collection) model. We do not require emails, passwords, or personal identifiers. Your chosen nickname is stored locally on your device to maintain your session, and competitive scores are transmitted via secure, encrypted protocols to our Render-hosted API solely for leaderboard placement. We never sell, track, or share your personal activity with third parties.",
-  cookies: "Cookies Policy: VECTFLIX utilizes essential cookies and local storage technologies to ensure the platform operates at peak performance. These cookies are used to cache game states, preserve your high scores, and optimize audio buffering speeds. Additionally, we integrate Google AdSense, which may utilize non-personalized cookies to serve relevant advertisements. These ads allow us to keep the VECTFLIX engine free for all users. By continuing to use the platform, you consent to these high-speed data caching technologies."
+  about: "VECTFLIX is a premium, high-speed music recognition platform engineered by @vecteezy_1 for a global community of audiophiles...",
+  howToPlay: "To begin your experience, search for any global artist using the integrated search bar...",
+  privacy: "Privacy Policy: Privacy is a core pillar of the VECTFLIX experience...",
+  cookies: "Cookies Policy: VECTFLIX utilizes essential cookies and local storage technologies..."
 };
 
 const AdSlot = ({ id }) => {
@@ -26,9 +26,7 @@ const AdSlot = ({ id }) => {
 };
 
 export default function App() {
-  // PEAK RESPONSIVE CHECK
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
@@ -41,7 +39,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
   const [newsData, setNewsData] = useState([]); 
-  const [spotifyTop50, setSpotifyTop50] = useState([]); // New Spotify State
+  const [spotifyTop50, setSpotifyTop50] = useState([]); 
   const [allRounds, setAllRounds] = useState([]);
   const [roundIndex, setRoundIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -55,13 +53,17 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // NEW: Fetch Spotify Top Streamed
+  // FIXED: Fetch Spotify Top Streamed
   const fetchSpotifyCharts = async () => {
     try {
       const res = await fetch(`${API_URL}/api/spotify/top-streamed`);
       const data = await res.json();
-      setSpotifyTop50(data || []);
-    } catch (e) { console.error("Spotify sync failed"); }
+      // Ensure we set data even if empty to stop the loader
+      setSpotifyTop50(Array.isArray(data) ? data : []);
+    } catch (e) { 
+      console.error("Spotify sync failed", e); 
+      setSpotifyTop50([]); 
+    }
   };
 
   const fetchMusicNews = async () => {
@@ -74,7 +76,7 @@ export default function App() {
 
   useEffect(() => {
     if (appMode === 'news') fetchMusicNews();
-    if (appMode === 'charts') fetchSpotifyCharts(); // Trigger fetch on mode change
+    if (appMode === 'charts') fetchSpotifyCharts(); 
   }, [appMode]);
 
   useEffect(() => {
@@ -228,7 +230,7 @@ export default function App() {
             {appMode === 'charts' && (
               <div style={{ paddingBottom: '60px', width: '100%', maxWidth: '900px', margin: '0 auto' }}>
                 <h2 style={styles.heroText}>Most <span style={{color: '#1DB954'}}>Streamed</span></h2>
-                <p style={{textAlign: 'center', opacity: 0.5, marginBottom: '35px', fontSize: '0.8rem'}}>Global Monthly Listeners (Spotify Real-Time)</p>
+                <p style={{textAlign: 'center', opacity: 0.5, marginBottom: '35px', fontSize: '0.8rem'}}>Spotify Real-Time Global Popularity</p>
                 
                 {spotifyTop50.length > 0 ? spotifyTop50.map((artist, index) => (
                   <div key={index} style={{
@@ -240,12 +242,12 @@ export default function App() {
                       <img src={artist.image} style={{width: '45px', height: '45px', borderRadius: '50%', objectFit: 'cover'}} alt={artist.name} />
                       <div>
                         <div style={{fontWeight: 'bold', fontSize: isMobile ? '0.85rem' : '1rem'}}>{artist.name}</div>
-                        <div style={{fontSize: '0.65rem', opacity: 0.4}}>{artist.followers.toLocaleString()} Followers</div>
+                        <div style={{fontSize: '0.65rem', opacity: 0.4}}>{artist.followers?.toLocaleString()} Followers</div>
                       </div>
                     </div>
                     <div style={{textAlign: 'right'}}>
-                      <div style={{ color: '#1DB954', fontWeight: 'bold', fontSize: '0.9rem' }}>{artist.monthlyListeners.toLocaleString()}</div>
-                      <div style={{fontSize: '0.55rem', opacity: 0.3, letterSpacing: '1px'}}>MONTHLY LISTENERS</div>
+                      <div style={{ color: '#1DB954', fontWeight: 'bold', fontSize: '0.9rem' }}>{artist.popularity}</div>
+                      <div style={{fontSize: '0.55rem', opacity: 0.3, letterSpacing: '1px'}}>PEAK SCORE</div>
                     </div>
                   </div>
                 )) : (
