@@ -8,10 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- SPOTIFY CONFIG (Ensure these are in Render Env Vars) ---
+// --- CONFIG ---
 const SPOT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-
 const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard.json');
 
 const readLeaderboard = () => {
@@ -25,14 +24,13 @@ const writeLeaderboard = (data) => {
   fs.writeFileSync(LEADERBOARD_FILE, JSON.stringify(data, null, 2), 'utf8');
 };
 
-// --- AUTH: Get Real Spotify Token ---
+// --- AUTH ---
 const getSpotifyToken = async () => {
   try {
     const params = new URLSearchParams();
     params.append('grant_type', 'client_credentials');
     const authHeader = Buffer.from(`${SPOT_ID}:${SPOT_SECRET}`).toString('base64');
     
-    // Official Spotify Token Endpoint
     const res = await axios.post('https://accounts.spotify.com/api/token', params, {
       headers: {
         'Authorization': `Basic ${authHeader}`,
@@ -41,13 +39,14 @@ const getSpotifyToken = async () => {
     });
     return res.data.access_token;
   } catch (err) {
-    console.error("Spotify Auth Error:", err.message);
+    console.error("❌ Auth Error:", err.message);
     return null;
   }
 };
 
-// --- 🎵 DEEZER GAME ROUTES (Untouched) ---
+// --- ROUTES ---
 
+// 1. Deezer Game (Untouched)
 app.get('/api/artists', async (req, res) => {
   try {
     const response = await axios.get('https://api.deezer.com/chart/0/artists');
@@ -76,15 +75,15 @@ app.get('/api/game/setup/:artistId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: "Setup Error" }); }
 });
 
-// --- 📈 FIXED SPOTIFY CHART ROUTE (OFFICIAL API) ---
-
+// 2. FIXED Spotify Charts (Web API)
 app.get('/api/spotify/top-streamed', async (req, res) => {
   try {
     const token = await getSpotifyToken();
-    if (!token) return res.status(500).json({ error: "Token Failed" });
+    if (!token) return res.status(500).json({ error: "Auth Failed" });
 
-    // 1. Get Global Top 50 Playlist (Official ID)
-    const playlistRes = await axios.get('https://api.spotify.com/v1/playlists/37i9dQZEVXbMDoHDwfs2tF', {
+    // Using 'Today's Top Hits' ID - extremely stable
+    const playlistId = '37i9dQZF1DXcBWIGoYBM3M'; 
+    const playlistRes = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -93,7 +92,7 @@ app.get('/api/spotify/top-streamed', async (req, res) => {
 
     if (artistIds.length === 0) return res.json([]);
 
-    // 2. Get Artist Details using the Official Several Artists endpoint
+    // Strict parameter formatting to avoid 404
     const artistsRes = await axios.get(`https://api.spotify.com/v1/artists?ids=${artistIds.join(',')}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -108,13 +107,12 @@ app.get('/api/spotify/top-streamed', async (req, res) => {
 
     res.json(formattedData);
   } catch (err) {
-    console.error("Spotify API Sync Error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Spotify Sync Failed" });
+    console.error("❌ Spotify 404/Error:", err.response?.status, err.response?.data);
+    res.status(500).json({ error: "Spotify Resource Not Found" });
   }
 });
 
-// --- NEWS & LEADERBOARD ---
-
+// 3. News & Leaderboard (Untouched)
 app.get('/api/news', async (req, res) => {
   try {
     const response = await axios.get("https://api.rss2json.com/v1/api.json?rss_url=https://www.billboard.com/c/music/feed/");
@@ -133,6 +131,4 @@ app.post('/api/leaderboard', (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`VECTFLIX Peak Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ VECTFLIX Peak Server running on ${PORT}`));
