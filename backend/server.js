@@ -37,7 +37,7 @@ const getSpotifyToken = async () => {
     params.append('grant_type', 'client_credentials');
     const authHeader = Buffer.from(`${SPOT_ID}:${SPOT_SECRET}`).toString('base64');
     
-    // FIXED: Using the OFFICIAL Spotify Token URL
+    // FIXED: Using the REAL Spotify Token URL
     const res = await axios.post('https://accounts.spotify.com/api/token', params, {
       headers: {
         'Authorization': `Basic ${authHeader}`,
@@ -98,9 +98,9 @@ app.get('/api/spotify/top-streamed', async (req, res) => {
     const token = await getSpotifyToken();
     if (!token) return res.status(500).json({ error: "Spotify Auth Failed" });
 
-    // 1. Get Global Top 50 Playlist (Correct Official ID: 37i9dQZEVXbMDoHDwfs2tF)
-    const playlistId = '37i9dQZEVXbMDoHDwfs2tF'; 
-    const playlistRes = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}`, {
+    // 1. Get Global Top 50 Playlist (Using the REAL URL)
+    // ID: 37i9dQZEVXbMDoHDwfs2tF is the Global Top 50
+    const playlistRes = await axios.get('https://api.spotify.com/v1/playlists/37i9dQZEVXbMDoHDwfs2tF', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -113,7 +113,7 @@ app.get('/api/spotify/top-streamed', async (req, res) => {
 
     if (artistIds.length === 0) return res.json([]);
 
-    // 2. Get Artist Details (Using standard Spotify 'artists' endpoint)
+    // 2. Get Artist Details (Using the REAL URL)
     const artistsRes = await axios.get(`https://api.spotify.com/v1/artists?ids=${artistIds.join(',')}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
