@@ -8,12 +8,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- SPOTIFY CONFIG ---
+// --- SPOTIFY CONFIG (Pulling from Render Environment Variables) ---
 const SPOT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
+// Path to persistent leaderboard file
 const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard.json');
 
+// --- Helper functions ---
 const readLeaderboard = () => {
   try {
     const data = fs.readFileSync(LEADERBOARD_FILE, 'utf8');
@@ -49,6 +51,7 @@ const getSpotifyToken = async () => {
 
 // --- 🎵 MUSIC API ROUTES ---
 
+// 1. Trending artists (Game Home)
 app.get('/api/artists', async (req, res) => {
   try {
     const response = await axios.get('https://api.deezer.com/chart/0/artists');
@@ -58,6 +61,7 @@ app.get('/api/artists', async (req, res) => {
   }
 });
 
+// 2. Search artists globally
 app.get('/api/search/artists', async (req, res) => {
   const query = req.query.q || req.params.name;
   if (!query) return res.json([]);
@@ -69,19 +73,27 @@ app.get('/api/search/artists', async (req, res) => {
   }
 });
 
+// 3. Game setup for quiz
 app.get('/api/game/setup/:artistId', async (req, res) => {
   try {
     const response = await axios.get(`https://api.deezer.com/artist/${req.params.artistId}/top?limit=50`);
     if (!response.data.data || response.data.data.length === 0) {
-      return res.status(404).json({ error: "No tracks found" });
+      return res.status(404).json({ error: "No tracks found for this artist" });
     }
+
     const tracksWithAudio = response.data.data.filter(t => t.preview && t.preview.length > 0);
     if (tracksWithAudio.length < 10) {
-      return res.status(400).json({ error: "Not enough tracks" });
+      return res.status(400).json({ error: "Not enough audio tracks for a quiz" });
     }
+
     const rounds = tracksWithAudio.sort(() => 0.5 - Math.random()).slice(0, 10).map(track => {
-      const others = tracksWithAudio.filter(t => t.id !== track.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+      const others = tracksWithAudio
+        .filter(t => t.id !== track.id)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+
       const choices = [...others, track].sort(() => 0.5 - Math.random());
+
       return {
         preview: track.preview,
         title: track.title,
@@ -89,48 +101,52 @@ app.get('/api/game/setup/:artistId', async (req, res) => {
         choices: choices.map(c => ({ id: c.id, title: c.title }))
       };
     });
+
     res.json(rounds);
   } catch (err) {
     res.status(500).json({ error: "Game Setup Error" });
   }
 });
 
-// --- 📈 FIXED SPOTIFY ROUTE ---
+// --- 📈 NEW: SPOTIFY TOP STREAMED ROUTE (FINAL PEAK FIX) ---
 
 app.get('/api/spotify/top-streamed', async (req, res) => {
   try {
     const token = await getSpotifyToken();
-    if (!token) return res.status(500).json({ error: "Spotify Auth Failed" });
+    if (!token) throw new Error("Auth Failed - Check Render Env Vars");
 
-    // 1. Get Global Top 50 Playlist (Correct ID: 37i9dQZEVXbMDoHDwfs2tF)
+    // Get Global Top 50 Playlist (Global ID)
     const playlistRes = await axios.get('https://api.spotify.com/v1/playlists/37i9dQZEVXbMDoHDwfs2tF', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const items = playlistRes.data.tracks.items || [];
-    const artistIds = [...new Set(items.map(i => i.track.artists[0].id))].slice(0, 15);
+    // Extract unique artist IDs
+    const items = playlistRes.data.tracks?.items || [];
+    const artistIds = [...new Set(items.map(i => i.track?.artists[0]?.id).filter(id => !!id))].slice(0, 15);
 
-    // 2. FIXED: Added the '$' symbol to make the URL dynamic
+    if (artistIds.length === 0) return res.json([]);
+
+    // FIXED: Added the $ symbol for the template literal below
     const artistsRes = await axios.get(`https://api.spotify.com/v1/artists?ids=${artistIds.join(',')}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const formattedData = artistsRes.data.artists.map(artist => ({
+    const formattedData = (artistsRes.data.artists || []).map(artist => ({
       name: artist.name,
-      image: artist.images[0]?.url,
-      followers: artist.followers.total,
+      image: artist.images ? artist.images[0]?.url : null,
+      followers: artist.followers ? artist.followers.total : 0,
       popularity: artist.popularity,
-      link: artist.external_urls.spotify
+      link: artist.external_urls?.spotify
     }));
 
     res.json(formattedData);
   } catch (err) {
-    console.error("Spotify Sync Error:", err.response?.data || err.message);
+    console.error("Spotify Sync Error:", err.response ? err.response.data : err.message);
     res.status(500).json({ error: "Failed to fetch Spotify data" });
   }
 });
 
-// --- 📰 NEWS & VIDEO ---
+// --- 📰 NEWS & VIDEO PROXY ROUTES ---
 
 app.get('/api/news', async (req, res) => {
   try {
@@ -150,22 +166,29 @@ app.get('/api/trending', async (req, res) => {
   }
 });
 
-// --- 📈 LEADERBOARD ---
+// --- 📈 LEADERBOARD ROUTES ---
 
 app.get('/api/leaderboard', (req, res) => {
-  res.json(readLeaderboard());
+  const leaderboard = readLeaderboard();
+  res.json(leaderboard);
 });
 
 app.post('/api/leaderboard', (req, res) => {
   const { name, score } = req.body;
-  if (!name || score === undefined) return res.status(400).json({ error: "Invalid data" });
+  if (!name || score === undefined) {
+    return res.status(400).json({ error: "Invalid data" });
+  }
+
   const leaderboard = readLeaderboard();
   leaderboard.push({ name, score, date: new Date().toLocaleDateString() });
+
   const sorted = leaderboard.sort((a, b) => b.score - a.score).slice(0, 10);
   writeLeaderboard(sorted);
+
   res.json(sorted);
 });
 
+// --- 🚀 SERVER LAUNCH ---
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`VECTFLIX Peak Server running on port ${PORT}`);
