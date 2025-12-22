@@ -5,10 +5,10 @@ const API_URL = "https://music-guessing-api-v3.onrender.com";
 const APPLE_TOKEN = "YOUR_TOKEN_HERE"; 
 
 const LEGAL_TEXT = {
-  about: "VECTFLIX is a premium, high-speed music recognition platform engineered by @vecteezy_1 for a global community of audiophiles. Our mission is to provide a seamless, low-latency environment where users can test their musical knowledge against a massive global database in real-time. By leveraging the VECTFLIX Peak Audio Engine, we deliver high-fidelity track previews and instant scoring, bridging the gap between casual listening and competitive gaming through a sleek, minimalist interface.",
-  howToPlay: "To begin your experience, search for any global artist using the integrated search bar. Once an artist is selected, our engine will optimize the audio catalog during a mandatory 5-second buffer to ensure lag-free play. You will face 10 high-intensity rounds where you must identify the correct track title from the audio clip provided. Every correct guess increases your standing. After the final round, you can finalize your score and see where you rank on the Global Hall of Fame.",
-  privacy: "Privacy Policy: Privacy is a core pillar of the VECTFLIX experience. We prioritize user integrity by operating on a (no-data-collection) model. We do not require emails, passwords, or personal identifiers. Your chosen nickname is stored locally on your device to maintain your session, and competitive scores are transmitted via secure, encrypted protocols to our Render-hosted API solely for leaderboard placement. We never sell, track, or share your personal activity with third parties.",
-  cookies: "Cookies Policy: VECTFLIX utilizes essential cookies and local storage technologies to ensure the platform operates at peak performance. These cookies are used to cache game states, preserve your high scores, and optimize audio buffering speeds. Additionally, we integrate Google AdSense, which may utilize non-personalized cookies to serve relevant advertisements. These ads allow us to keep the VECTFLIX engine free for all users. By continuing to use the platform, you consent to these high-speed data caching technologies."
+  about: "VECTFLIX is a premium, high-speed music recognition platform engineered by @vecteezy_1 for a global community of audiophiles. Our mission is to provide a seamless, low-latency environment where users can test their musical knowledge against a massive global database in real-time.",
+  howToPlay: "Search for any global artist. Once selected, our engine optimizes the audio catalog during a 5-second buffer. Identify the correct track title from the audio clips provided across 10 rounds to climb the Global Hall of Fame.",
+  privacy: "Privacy Policy: VECTFLIX operates on a no-data-collection model. We do not require emails or passwords. Your chosen nickname is stored locally to maintain your session, and scores are transmitted via secure protocols to our leaderboard.",
+  cookies: "Cookies Policy: We use essential local storage to cache game states and preserve high scores. We integrate Google AdSense for non-personalized ads to keep the VECTFLIX engine free for all users."
 };
 
 const AdSlot = ({ id }) => {
@@ -43,6 +43,14 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
+  // PEAK DYNAMIC BACKGROUND EFFECT
+  useEffect(() => {
+    if (view === 'home') {
+      document.body.style.background = 'radial-gradient(circle at top right, #2b0a0a, #000000, #050505)';
+    }
+  }, [view]);
+
+  // PRE-LOADING AUDIO ENGINE
   useEffect(() => {
     if ((view === 'game' || view === 'ready') && allRounds.length > 0) {
       for (let i = 0; i <= 3; i++) {
@@ -116,6 +124,12 @@ export default function App() {
     setIsFetchingArtists(true);
     setSelectedArtist(a.name);
     setSelectedArtistImg(a.picture_medium);
+    
+    // APPLY DYNAMIC VIBE COLOR
+    const hues = [0, 210, 280, 150, 45, 330]; 
+    const selectedHue = hues[a.name.length % hues.length];
+    document.body.style.background = `radial-gradient(circle at top right, hsla(${selectedHue}, 70%, 15%, 1), #000000, #050505)`;
+
     sessionStorage.setItem('v_name', a.name);
     sessionStorage.setItem('v_img', a.picture_medium);
     try {
@@ -197,7 +211,6 @@ export default function App() {
             ) : (
               <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
             )}
-            <p style={{fontSize: '0.6rem', opacity: 0.3, marginTop: '10px'}}>Pre-loading audio for lag-free play</p>
           </div>
         )}
 
@@ -241,31 +254,43 @@ export default function App() {
               <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
             </div>
             <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => { setView('ranking'); fetchLeaderboard(); }}>SEE GLOBAL RANKING</button>
-            <button style={{...styles.playBtn, background: '#222', marginTop: '10px'}} onClick={handleHomeReturn}>HOME</button>
           </div>
         )}
 
         {view === 'ranking' && (
           <div style={styles.glassCardResults}>
-            <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL RANKINGS</h2>
+            <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL HALL OF FAME</h2>
             <AdSlot id="4888078097" /> 
             <div style={{textAlign: 'left', marginBottom: '30px'}}>
-              {leaderboard.map((r, i) => (
-                <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #222'}}>
-                  <span>{i+1}. {r.name}</span>
-                  <span style={{color: '#E50914', fontWeight: 'bold'}}>{r.score}/10</span>
-                </div>
-              ))}
+              {leaderboard.map((r, i) => {
+                let badgeStyle = styles.defaultRank;
+                if (i === 0) badgeStyle = { ...styles.rankBadge, ...styles.gold };
+                else if (i === 1) badgeStyle = { ...styles.rankBadge, ...styles.silver };
+                else if (i === 2) badgeStyle = { ...styles.rankBadge, ...styles.bronze };
+
+                return (
+                  <div key={i} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+                    <div style={{display: 'flex', alignItems: 'center'}}>
+                      <div style={i < 3 ? badgeStyle : {marginRight: '25px', opacity: 0.5}}>{i + 1}</div>
+                      <span style={{fontWeight: i < 3 ? 'bold' : 'normal'}}>{r.name}</span>
+                    </div>
+                    <span style={{color: i === 0 ? '#FFD700' : '#E50914', fontWeight: 'bold'}}>{r.score}/10</span>
+                  </div>
+                );
+              })}
             </div>
-            <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
+            <button style={styles.playBtn} onClick={handleHomeReturn}>NEW CHALLENGE</button>
           </div>
         )}
 
         <footer style={styles.footer}>
-          <a href="/about.html" style={styles.instaLink}>About</a> | 
-          <a href="/privacy-policy.html" style={styles.instaLink}>Privacy Policy</a> | 
-          <a href="/terms.html" style={styles.instaLink}>Terms</a> | 
-          <a href="/affiliate-disclosure.html" style={styles.instaLink}>Affiliate Disclosure</a>
+          <div style={{marginBottom: '15px'}}>
+            <a href="/about" style={styles.instaLink}>About</a>
+            <a href="/privacy" style={styles.instaLink}>Privacy</a>
+            <a href="/terms" style={styles.instaLink}>Terms</a>
+            <a href="/disclosure" style={styles.instaLink}>Disclosure</a>
+          </div>
+          <p style={{fontSize: '0.7rem', opacity: 0.3}}>© 2025 VECTFLIX PEAK ENGINE. Engineered for performance.</p>
         </footer>
       </div>
     </div>
