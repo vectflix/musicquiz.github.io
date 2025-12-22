@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 
 // --- CONFIGURATION ---
 const API_URL = "https://music-guessing-api-v3.onrender.com"; 
+// Once you get your Apple Token, paste it here:
+const APPLE_TOKEN = "YOUR_TOKEN_HERE"; 
 
 const LEGAL_TEXT = {
   about: "VECTFLIX is a premium, high-speed music recognition platform engineered by @vecteezy_1 for a global community of audiophiles. Our mission is to provide a seamless, low-latency environment where users can test their musical knowledge against a massive global database in real-time. By leveraging the VECTFLIX Peak Audio Engine, we deliver high-fidelity track previews and instant scoring, bridging the gap between casual listening and competitive gaming through a sleek, minimalist interface.",
@@ -46,7 +48,6 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // --- 🚀 PRELOAD NEXT 3 ROUNDS ---
   useEffect(() => {
     if ((view === 'game' || view === 'ready') && allRounds.length > 0) {
       for (let i = 0; i <= 3; i++) {
@@ -60,7 +61,6 @@ export default function App() {
     }
   }, [view, roundIndex, allRounds]);
 
-  // --- ⏱️ MANDATORY 5s COUNTDOWN ---
   useEffect(() => {
     let timer;
     if (view === 'ready' && countdown > 0) {
@@ -69,7 +69,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [view, countdown]);
 
-  // --- 🌍 UPDATED GLOBAL ARTIST SEARCH LOGIC ---
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (searchTerm.trim().length > 1) {
@@ -166,7 +165,7 @@ export default function App() {
         {view === 'home' && (
           <main>
             <h2 style={styles.heroText}>Guess the <span style={{color:'#E50914'}}>Hit</span></h2>
-            
+            <br />
             <div style={styles.searchContainer}>
               <input 
                 type="text" 
@@ -234,8 +233,9 @@ export default function App() {
             <div style={{marginTop: '20px', padding: '25px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '1px solid #222'}}>
               <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                <a href={`https://music.apple.com/search?term=${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
-                <a href={`https://open.spotify.com/search/${selectedArtist}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
+                {/* TRACKED APPLE LINK */}
+                <a href={`https://music.apple.com/search?term=${encodeURIComponent(selectedArtist)}&at=${APPLE_TOKEN}&ct=vectflix_results`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
+                <a href={`https://open.spotify.com/search/${encodeURIComponent(selectedArtist)}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
               </div>
             </div>
             <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px'}} onClick={() => setView('share')}>REVEAL SCORE →</button>
@@ -274,7 +274,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ✅ Updated Footer with Static Pages */}
         <footer style={styles.footer}>
           <a href="/about.html" style={styles.instaLink}>About</a> | 
           <a href="/privacy-policy.html" style={styles.instaLink}>Privacy Policy</a> | 
