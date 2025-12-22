@@ -233,7 +233,6 @@ export default function App() {
             <div style={{marginTop: '20px', padding: '25px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '1px solid #222'}}>
               <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                {/* TRACKED APPLE LINK */}
                 <a href={`https://music.apple.com/search?term=${encodeURIComponent(selectedArtist)}&at=${APPLE_TOKEN}&ct=vectflix_results`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
                 <a href={`https://open.spotify.com/search/${encodeURIComponent(selectedArtist)}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
               </div>
@@ -261,7 +260,7 @@ export default function App() {
         {view === 'ranking' && (
           <div style={styles.glassCardResults}>
             <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL RANKINGS</h2>
-            <AdSlot id="ranking_ad" />
+            <AdSlot id="4888078097" /> 
             <div style={{textAlign: 'left', marginBottom: '30px'}}>
               {rankings.map((r, i) => (
                 <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #222'}}>
