@@ -27,7 +27,8 @@ const AdSlot = ({ id }) => {
 
 export default function App() {
   const [view, setView] = useState('home'); 
-  const [appMode, setAppMode] = useState('game'); // 'game' or 'discover'
+  const [appMode, setAppMode] = useState('game'); // NEW: Game vs Discover
+  const [activeModal, setActiveModal] = useState(null); // Fixes 404
   const [isFetchingArtists, setIsFetchingArtists] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
@@ -126,7 +127,6 @@ export default function App() {
     setSelectedArtist(a.name);
     setSelectedArtistImg(a.picture_medium);
     
-    // APPLY DYNAMIC VIBE COLOR
     const hues = [0, 210, 280, 150, 45, 330]; 
     const selectedHue = hues[a.name.length % hues.length];
     document.body.style.background = `radial-gradient(circle at top right, hsla(${selectedHue}, 70%, 15%, 1), #000000, #050505)`;
@@ -157,6 +157,7 @@ export default function App() {
     <div style={styles.appWrapper}>
       <div style={styles.container}>
         
+        {/* LOGIN OVERLAY */}
         {!isLoggedIn && (
           <div style={styles.loginOverlay}>
             <div style={styles.glassCardResults}>
@@ -174,16 +175,10 @@ export default function App() {
 
         {view === 'home' && (
           <main>
-            {/* MODE TOGGLE ABOVE SEARCHBAR */}
+            {/* PEAK MODE TOGGLE */}
             <div style={styles.modeToggle}>
-              <button 
-                style={{...styles.modeBtn, ...(appMode === 'game' ? styles.activeMode : {})}} 
-                onClick={() => setAppMode('game')}
-              >🎮 GAME MODE</button>
-              <button 
-                style={{...styles.modeBtn, ...(appMode === 'discover' ? styles.activeMode : {})}} 
-                onClick={() => setAppMode('discover')}
-              >📺 DISCOVER VIDEO</button>
+              <button style={{...styles.modeBtn, ...(appMode === 'game' ? styles.activeMode : {})}} onClick={() => setAppMode('game')}>🎮 GAME MODE</button>
+              <button style={{...styles.modeBtn, ...(appMode === 'discover' ? styles.activeMode : {})}} onClick={() => setAppMode('discover')}>📺 DISCOVER VIDEO</button>
             </div>
 
             <h2 style={styles.heroText}>
@@ -191,39 +186,24 @@ export default function App() {
             </h2>
 
             <div style={styles.searchContainer}>
-              <input 
-                type="text" 
-                placeholder={appMode === 'game' ? "Search global artists (e.g. Drake)..." : "Search for videos or artists..."} 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-                style={styles.searchInput} 
-              />
+              <input type="text" placeholder={appMode === 'game' ? "Search global artists..." : "Search videos..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
               {isFetchingArtists && <div style={styles.loaderLine}></div>}
             </div>
 
-            {/* GENRE SEARCH SECTION (Only in Discover Mode when not searching) */}
+            {/* GENRE GRID (Discover Only) */}
             {appMode === 'discover' && searchTerm === '' && (
-              <div style={{marginBottom: '40px'}}>
-                <h3 style={{fontSize: '1.2rem', opacity: 0.8, marginBottom: '20px'}}>Browse Genres</h3>
-                <div style={styles.genreGrid}>
-                  {['Pop', 'Hip-Hop', 'Rock', 'Afrobeats', 'R&B', 'Latin'].map(genre => (
-                    <div key={genre} style={styles.genreCard} onClick={() => setSearchTerm(genre)}>
-                      {genre}
-                    </div>
-                  ))}
-                </div>
+              <div style={styles.genreGrid}>
+                {['Pop', 'Hip-Hop', 'Rock', 'Afrobeats', 'R&B', 'Latin'].map(genre => (
+                  <div key={genre} style={styles.genreCard} onClick={() => setSearchTerm(genre)}>{genre}</div>
+                ))}
               </div>
             )}
 
             <div style={styles.artistGrid}>
               {artists.map(a => (
                 <div key={a.id} style={styles.artistCard} onClick={() => {
-                  if(appMode === 'game') startGameSetup(a);
-                  else { 
-                    setSelectedArtist(a.name);
-                    setSelectedArtistImg(a.picture_medium);
-                    setView('videoPlayer'); 
-                  }
+                   if(appMode === 'game') startGameSetup(a);
+                   else { setSelectedArtist(a.name); setSelectedArtistImg(a.picture_medium); setView('videoPlayer'); }
                 }}>
                   <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
                   <p style={styles.artistName}>{a.name}</p>
@@ -232,34 +212,27 @@ export default function App() {
               ))}
             </div>
 
-            {/* MUSIC PULSE NEWS SECTION */}
+            {/* MUSIC PULSE NEWS */}
             <div style={styles.newsSection}>
-              <h3 style={{fontSize: '1.5rem', fontWeight: '900', letterSpacing: '-0.5px'}}>
-                Music <span style={{color: '#E50914'}}>Pulse</span>
-              </h3>
+              <h3 style={{fontSize: '1.5rem', fontWeight: '900'}}>Music <span style={{color: '#E50914'}}>Pulse</span></h3>
               <div style={styles.newsGrid}>
                 <div style={styles.newsCard}>
-                  <span style={styles.newsTag}>Trending Now</span>
-                  <h4 style={{margin: '0 0 10px 0'}}>The Return of Vinyl: 2025 Sales Record</h4>
-                  <p style={{fontSize: '0.85rem', opacity: 0.5, lineHeight: '1.5'}}>Physical media continues to surge as audiophiles prioritize high-fidelity analog sound.</p>
+                  <span style={styles.newsTag}>Trending</span>
+                  <h4>The Vinyl Record Surge 2025</h4>
+                  <p style={{fontSize: '0.8rem', opacity: 0.5}}>Physical media sales hit a 30-year high this December.</p>
                 </div>
                 <div style={styles.newsCard}>
-                  <span style={styles.newsTag}>Artist Update</span>
-                  <h4 style={{margin: '0 0 10px 0'}}>Global Tour Alert: Stadiums Booked</h4>
-                  <p style={{fontSize: '0.85rem', opacity: 0.5, lineHeight: '1.5'}}>Major artists have begun announcing dates for the 2026 World Festival Circuit.</p>
+                  <span style={styles.newsTag}>Live</span>
+                  <h4>World Tour 2026 Updates</h4>
+                  <p style={{fontSize: '0.8rem', opacity: 0.5}}>Stadium dates for top artists are being finalized now.</p>
                 </div>
               </div>
             </div>
 
+            {/* LEGAL SECTION */}
             <div style={styles.legalSection}>
               <h4 style={styles.legalHeading}>About VECTFLIX</h4>
               <p style={styles.legalBody}>{LEGAL_TEXT.about}</p>
-              <h4 style={styles.legalHeading}>How to Play</h4>
-              <p style={styles.legalBody}>{LEGAL_TEXT.howToPlay}</p>
-              <h4 style={styles.legalHeading}>Privacy Policy</h4>
-              <p style={styles.legalBody}>{LEGAL_TEXT.privacy}</p>
-              <h4 style={styles.legalHeading}>Cookies Policy</h4>
-              <p style={styles.legalBody}>{LEGAL_TEXT.cookies}</p>
             </div>
           </main>
         )}
@@ -268,33 +241,20 @@ export default function App() {
         {view === 'videoPlayer' && (
           <div style={styles.glassCardResults}>
             <div style={styles.videoContainer}>
-              <iframe 
-                width="100%" 
-                height="100%" 
-                src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(selectedArtist + " official music video preview")}`} 
-                frameBorder="0" 
-                allowFullScreen
-              ></iframe>
+              <iframe width="100%" height="100%" src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(selectedArtist + " official music video")}`} frameBorder="0" allowFullScreen></iframe>
             </div>
             <h2 style={{margin: '20px 0'}}>{selectedArtist}</h2>
             <button style={styles.playBtn} onClick={() => setView('home')}>EXIT PLAYER</button>
-            <p style={{fontSize: '0.6rem', opacity: 0.3, marginTop: '10px'}}>Preview powered by the VECTFLIX Visual Engine</p>
           </div>
         )}
 
+        {/* GAME ENGINE VIEWS (READY, GAME, RESULTS, SHARE, RANKING) */}
         {view === 'ready' && (
           <div style={styles.glassCardResults}>
             <img src={selectedArtistImg} style={styles.resultsArtistImg} alt="artist" />
             <h2 style={{margin: '10px 0'}}>{selectedArtist}</h2>
-            {countdown > 0 ? (
-              <div style={styles.countdownBox}>
-                <p style={{fontSize: '0.7rem', opacity: 0.5}}>READYING TRACKS...</p>
-                <h1 style={{fontSize: '3.5rem', color: '#E50914', fontWeight: '900'}}>{countdown}</h1>
-              </div>
-            ) : (
-              <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>
-            )}
-            <p style={{fontSize: '0.6rem', opacity: 0.3, marginTop: '10px'}}>Pre-loading audio for lag-free play</p>
+            <h1 style={{fontSize: '3.5rem', color: '#E50914', fontWeight: '900'}}>{countdown > 0 ? countdown : "GO!"}</h1>
+            {countdown === 0 && <button style={styles.playBtn} onClick={() => setView('game')}>START GAME</button>}
           </div>
         )}
 
@@ -302,7 +262,6 @@ export default function App() {
           <div style={styles.gameCard}>
             <audio autoPlay src={allRounds[roundIndex].preview} />
             <div style={styles.progressBar}><div style={{...styles.progressFill, width: `${(roundIndex + 1) * 10}%`}}></div></div>
-            <p style={{opacity: 0.5, marginBottom: '20px'}}>ROUND {roundIndex + 1}/10</p>
             <div style={styles.choicesGrid}>
               {allRounds[roundIndex].choices.map(c => (
                 <button key={c.id} style={styles.choiceBtn} onClick={() => handleAnswer(c.id === allRounds[roundIndex].correctId)}>{c.title}</button>
@@ -313,15 +272,7 @@ export default function App() {
 
         {view === 'results' && (
           <div style={styles.glassCardResults}>
-             <div style={styles.statusDot}></div>
-             <p style={{letterSpacing: '3px', fontSize: '0.7rem', opacity: 0.5}}>GAME ANALYZED</p>
-             <div style={{marginTop: '20px', padding: '25px', background: 'rgba(255,255,255,0.03)', borderRadius: '25px', border: '1px solid #222'}}>
-               <h3 style={{fontSize: '0.9rem', color: '#E50914', marginBottom: '20px'}}>LISTEN TO {selectedArtist.toUpperCase()}</h3>
-               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                 <a href={`https://music.apple.com/search?term=${encodeURIComponent(selectedArtist)}&at=${APPLE_TOKEN}&ct=vectflix_results`} target="_blank" rel="noreferrer" style={styles.linkButtonWhite}>🍎 Apple Music</a>
-                 <a href={`https://open.spotify.com/search/${encodeURIComponent(selectedArtist)}`} target="_blank" rel="noreferrer" style={styles.linkButtonGreen}>🎧 Spotify</a>
-               </div>
-             </div>
+             <p style={{letterSpacing: '3px', fontSize: '0.7rem', opacity: 0.5}}>ANALYZING PERFORMANCE...</p>
              <button style={{...styles.playBtn, background: '#1da1f2', marginTop: '30px'}} onClick={() => setView('share')}>REVEAL SCORE →</button>
           </div>
         )}
@@ -329,53 +280,48 @@ export default function App() {
         {view === 'share' && (
           <div style={{textAlign: 'center'}}>
             <div style={styles.shareCard}>
-              <div style={{color: '#E50914', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '6px', marginBottom: '35px'}}>VECTFLIX</div>
-              <img src={selectedArtistImg} style={{width: '130px', height: '130px', borderRadius: '50%', border: '5px solid #E50914', objectFit: 'cover'}} alt="artist" />
-              <div style={{display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center', marginTop: '20px'}}>
-                <h2 style={{margin: '0', fontSize: '1.8rem', color: '#fff', fontWeight: '900'}}>{selectedArtist}</h2>
-                <div style={styles.verifiedBadge}>✓</div>
-              </div>
-              <div style={{fontSize: '7rem', fontWeight: '900', color: '#E50914', margin: '15px 0'}}>{score}/10</div>
+              <div style={{color: '#E50914', fontWeight: 'bold', marginBottom: '20px'}}>VECTFLIX RESULT</div>
+              <img src={selectedArtistImg} style={{width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #E50914'}} alt="artist" />
+              <h2 style={{marginTop: '15px'}}>{selectedArtist}</h2>
+              <div style={{fontSize: '6rem', fontWeight: '900', color: '#E50914'}}>{score}/10</div>
             </div>
             <button style={{...styles.playBtn, background: '#FFD700', color: '#000', marginTop: '20px'}} onClick={() => { setView('ranking'); fetchLeaderboard(); }}>SEE GLOBAL RANKING</button>
-            <button style={{...styles.playBtn, background: '#222', marginTop: '10px'}} onClick={handleHomeReturn}>HOME</button>
           </div>
         )}
 
         {view === 'ranking' && (
           <div style={styles.glassCardResults}>
             <h2 style={{color: '#E50914', marginBottom: '20px'}}>GLOBAL HALL OF FAME</h2>
-            <AdSlot id="4888078097" /> 
             <div style={{textAlign: 'left', marginBottom: '30px'}}>
-              {leaderboard.map((r, i) => {
-                let badgeStyle = styles.defaultRank;
-                if (i === 0) badgeStyle = { ...styles.rankBadge, ...styles.gold };
-                else if (i === 1) badgeStyle = { ...styles.rankBadge, ...styles.silver };
-                else if (i === 2) badgeStyle = { ...styles.rankBadge, ...styles.bronze };
-
-                return (
-                  <div key={i} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
-                    <div style={{display: 'flex', alignItems: 'center'}}>
-                      <div style={i < 3 ? badgeStyle : {marginRight: '25px', opacity: 0.5, width: '28px', textAlign: 'center'}}>{i + 1}</div>
-                      <span style={{fontWeight: i < 3 ? 'bold' : 'normal'}}>{r.name}</span>
-                    </div>
-                    <span style={{color: i === 0 ? '#FFD700' : '#E50914', fontWeight: 'bold'}}>{r.score}/10</span>
-                  </div>
-                );
-              })}
+              {leaderboard.map((r, i) => (
+                <div key={i} style={{display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+                  <span><span style={{color: i<3?'#E50914':'#555', marginRight: '10px'}}>{i+1}</span> {r.name}</span>
+                  <span style={{fontWeight: 'bold'}}>{r.score}/10</span>
+                </div>
+              ))}
             </div>
             <button style={styles.playBtn} onClick={handleHomeReturn}>PLAY AGAIN</button>
           </div>
         )}
 
+        {/* PEAK MODAL SYSTEM */}
+        {activeModal && (
+          <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
+            <div style={{...styles.glassCardResults, maxWidth:'700px', textAlign:'left'}}>
+               <h2 style={{color:'#E50914'}}>{activeModal.toUpperCase()}</h2>
+               <p style={{lineHeight:'1.6', opacity:0.8}}>{LEGAL_TEXT[activeModal] || "Vectflix Terms of Service apply."}</p>
+               <button style={styles.playBtn} onClick={() => setActiveModal(null)}>CLOSE</button>
+            </div>
+          </div>
+        )}
+
         <footer style={styles.footer}>
           <div style={{marginBottom: '15px'}}>
-            <a href="/about" style={styles.instaLink}>About</a>
-            <a href="/privacy" style={styles.instaLink}>Privacy</a>
-            <a href="/terms" style={styles.instaLink}>Terms</a>
-            <a href="/disclosure" style={styles.instaLink}>Disclosure</a>
+            <span onClick={() => setActiveModal('about')} style={styles.instaLink}>About</span>
+            <span onClick={() => setActiveModal('privacy')} style={styles.instaLink}>Privacy</span>
+            <span onClick={() => setActiveModal('cookies')} style={styles.instaLink}>Cookies</span>
           </div>
-          <p style={{fontSize: '0.7rem', opacity: 0.3}}>© 2025 VECTFLIX PEAK ENGINE. Engineered for performance.</p>
+          <p style={{fontSize: '0.7rem', opacity: 0.3}}>© 2025 VECTFLIX PEAK ENGINE.</p>
         </footer>
       </div>
     </div>
