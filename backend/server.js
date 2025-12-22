@@ -27,7 +27,7 @@ const writeLeaderboard = (data) => {
 
 // --- 🎵 MUSIC API ROUTES ---
 
-// 1. Trending artists
+// 1. Trending artists (Game Home)
 app.get('/api/artists', async (req, res) => {
   try {
     const response = await axios.get('https://api.deezer.com/chart/0/artists');
@@ -84,15 +84,36 @@ app.get('/api/game/setup/:artistId', async (req, res) => {
   }
 });
 
+// --- 📰 NEW: NEWS & VIDEO PROXY ROUTES ---
+
+// 4. Global Music News (Billboard RSS to JSON)
+app.get('/api/news', async (req, res) => {
+  try {
+    const response = await axios.get("https://api.rss2json.com/v1/api.json?rss_url=https://www.billboard.com/c/music/feed/");
+    res.json(response.data.items || []);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch music news" });
+  }
+});
+
+// 5. Trending Charts (For Video Feed)
+app.get('/api/trending', async (req, res) => {
+  try {
+    const response = await axios.get("https://api.deezer.com/editorial/0/charts");
+    // We send back tracks or albums for the video feed
+    res.json(response.data.tracks?.data || []);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch trending videos" });
+  }
+});
+
 // --- 📈 LEADERBOARD ROUTES ---
 
-// GET leaderboard
 app.get('/api/leaderboard', (req, res) => {
   const leaderboard = readLeaderboard();
   res.json(leaderboard);
 });
 
-// POST leaderboard
 app.post('/api/leaderboard', (req, res) => {
   const { name, score } = req.body;
   if (!name || score === undefined) {
