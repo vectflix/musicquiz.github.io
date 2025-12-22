@@ -26,12 +26,21 @@ const AdSlot = ({ id }) => {
 };
 
 export default function App() {
+  // PEAK RESPONSIVE CHECK
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [view, setView] = useState('home'); 
   const [appMode, setAppMode] = useState('game'); 
   const [isFetchingArtists, setIsFetchingArtists] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [artists, setArtists] = useState([]);
-  const [newsData, setNewsData] = useState([]); // Billboard News State
+  const [newsData, setNewsData] = useState([]); 
   const [allRounds, setAllRounds] = useState([]);
   const [roundIndex, setRoundIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -45,16 +54,12 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('vectflix_user'));
   const [tempName, setTempName] = useState('');
 
-  // FETCH BILLBOARD NEWS (Headline Only Mode)
   const fetchMusicNews = async () => {
     try {
-      // Using your Render API or a proxy to fetch billboard headlines
       const res = await fetch(`${API_URL}/api/news`); 
       const data = await res.json();
       setNewsData(data || []);
-    } catch (e) { 
-      console.error("Billboard sync failed"); 
-    }
+    } catch (e) { console.error("Billboard sync failed"); }
   };
 
   useEffect(() => {
@@ -185,9 +190,9 @@ export default function App() {
             {appMode === 'news' ? (
               <div style={{paddingBottom: '40px'}}>
                 <h2 style={styles.heroText}>Billboard <span style={{color: '#E50914'}}>Headlines</span></h2>
-                <div style={styles.newsGrid}>
+                <div style={{ ...styles.newsGrid, ...(isMobile ? styles.newsGridMobile : {}) }}>
                   {newsData.length > 0 ? newsData.map((item, index) => (
-                    <div key={index} style={{...styles.newsCard, padding: '20px', display: 'block'}}>
+                    <div key={index} style={{...styles.newsCard, ...(isMobile ? styles.newsCardMobile : {}), padding: '20px', display: 'block'}}>
                       <div style={styles.newsInfo}>
                         <span style={styles.newsTag}>BILLBOARD UPDATE</span>
                         <h4 style={{margin: '10px 0', color: '#fff', fontSize: '1.1rem', lineHeight: '1.4'}}>{item.title}</h4>
@@ -204,11 +209,11 @@ export default function App() {
                   <input type="text" placeholder="Search global artists (e.g. Drake)..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={styles.searchInput} />
                   {isFetchingArtists && <div style={styles.loaderLine}></div>}
                 </div>
-                <div style={styles.artistGrid}>
+                <div style={{ ...styles.artistGrid, ...(isMobile ? styles.artistGridMobile : {}) }}>
                   {artists.map(a => (
-                    <div key={a.id} style={styles.artistCard} onClick={() => startGameSetup(a)}>
-                      <img src={a.picture_medium} style={styles.artistImg} alt={a.name} />
-                      <p style={styles.artistName}>{a.name}</p>
+                    <div key={a.id} style={{ ...styles.artistCard, ...(isMobile ? styles.artistCardMobile : {}) }} onClick={() => startGameSetup(a)}>
+                      <img src={a.picture_medium} style={{ ...styles.artistImg, ...(isMobile ? styles.artistImgMobile : {}) }} alt={a.name} />
+                      <p style={{ ...styles.artistName, ...(isMobile ? styles.artistNameMobile : {}) }}>{a.name}</p>
                     </div>
                   ))}
                 </div>
